@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="hr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>beštija — bistro zagreb</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300;400&family=Karla:wght@200;300;400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Critical first-paint — prevents logo FOUC before module CSS loads */
+      html,
+      body {
+        margin: 0;
+        background: #080807;
+      }
+      .tile {
+        opacity: 0;
+      }
+      .tile--logo {
+        opacity: 1;
+      }
+      .wordmark > * {
+        fill: none;
+        stroke: #ff4a25;
+        stroke-width: 18;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+      }
+      .logo {
+        opacity: 0;
+      }
+      .logo-sub {
+        opacity: 0;
+      }
+      html.js .tile:not(.tile--logo) .tile-body,
+      html.js .tile-media {
+        opacity: 0;
+      }
+    </style>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        // Gates the JS-sequenced reveal.
+        root.classList.add('js');
+
+        // Follows the OS motion setting, but ?motion=full / ?motion=reduce
+        // pins a choice (handy when the OS has Reduce Motion switched on).
+        var choice = null;
+        try {
+          var asked = new URLSearchParams(location.search).get('motion');
+          if (asked) localStorage.setItem('bestija:motion', asked);
+          choice = localStorage.getItem('bestija:motion');
+        } catch (e) {}
+        var reduce =
+          choice === 'reduce' ||
+          (choice !== 'full' &&
+            matchMedia('(prefers-reduced-motion: reduce)').matches);
+        root.dataset.motion = reduce ? 'reduce' : 'full';
+
+        // Never leave content hidden if the module fails to boot.
+        setTimeout(function () {
+          if (!root.classList.contains('seq-ready')) root.classList.remove('js');
+        }, 6000);
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="pager" id="pager">
+      <div class="pager-track" id="pager-track">
+    <section class="screen screen--grid" id="top">
+    <div class="shell" id="shell">
+      <main class="grid">
+        <article class="tile tile--logo" style="--i: 0" aria-label="beštija">
+          <div class="tile-body">
+            <svg class="logo" viewBox="0 0 1168.4 350.3" role="img" aria-label="beštija">
+              <g class="wordmark">
+                <path
+                  class="bslovo"
+                  pathLength="1"
+                  fill="none"
+                  stroke="#ff4a25"
+                  d="M9,225.1L21.2,97.8c0,0,6.5-61.1,32.9-55.6s21.7,47.1,21.4,51c-0.3,4-3.4,28.9-3.4,28.9s36.6-1,45.4-0.1
+                    c82.8,6.4,57.4,76.9,39.1,131"
+                />
+                <path
+                  class="est"
+                  pathLength="1"
+                  fill="none"
+                  stroke="#ff4a25"
+                  d="M204.4,222.7c14.1-16.7,83.7-79.7,85.2-111.3c0.3-8.8-11.8-26.4-39.7-10.8c-31.5,29.5-19.3,124.1,14.7,131.4
+                    c48.8,4.1,103.4-102.6,124.6-135.2c37.2,58.5,102.1,45.8,144,73.7c15.3,14.8-12.6,71.7-32.9,70.3c-62-14,57.6-145.3,61.2-158.3
+                    l69.9,169"
+                />
+                <line
+                  class="kvac"
+                  pathLength="1"
+                  fill="none"
+                  stroke="#ff4a25"
+                  x1="338.2"
+                  y1="9"
+                  x2="460.7"
+                  y2="41.9"
+                />
+                <path
+                  class="tij"
+                  pathLength="1"
+                  fill="none"
+                  stroke="#ff4a25"
+                  d="M504.4,85.8c45.5-23.7,237.6-59.9,248.6,39.3c1.4,18.4,2,53.7,6.5,62c4.5,8.3,12.2,21.1,22.7,2.9
+                    c21.8-21.4,71.7-187.4,96.9-128.7c40.9,88.8,82.4,142.5,99.8,227.9c9.7,61.7-81.8,72.8-87.9,10.2c-19.3-93.7,56.9-222,129.8-267.3"
+                />
+                <path
+                  class="aslovo"
+                  pathLength="1"
+                  fill="none"
+                  stroke="#ff4a25"
+                  d="M1055.4,33.2c-20.3,21.1-51.8,44.8-71.7,82.8c-11.6,24.1-26.1,67.2,28.6,30.3c54.7-36.9,68.6-51,81.4-56.4
+                    c12.8-5.4,51-23,53.6,47.6s11.1,153.1,12.2,155.9"
+                />
+              </g>
+            </svg>
+            <span class="logo-sub">Bistro · Zagreb</span>
+          </div>
+        </article>
+
+        <article class="tile tile--media tile--menu" style="--i: 1">
+          <div class="tile-media" aria-hidden="true"></div>
+          <div class="tile-body">
+            <div class="tile-lead">
+              <div class="tile-text">
+                <h2>Menu</h2>
+                <p>
+                  Market-driven plates that change with the week. Adriatic fish from Dolac, Croatian wine by the
+                  glass.
+                </p>
+              </div>
+              <span class="scroll-hint" aria-hidden="true">
+                Scroll
+                <svg viewBox="0 0 16 16"><path d="M8 2v11M3.5 8.5 8 13l4.5-4.5" /></svg>
+              </span>
+            </div>
+
+            <!-- Revealed only when the card is expanded, so the intro decode skips it. -->
+            <section class="card-more menu-sheet" aria-label="Menu">
+              <header class="menu-head">
+                <span class="menu-season">Autumn · Winter</span>
+                <span class="menu-chef">Mateo Davidović</span>
+              </header>
+
+              <div class="menu-group">
+                <h3 class="menu-heading">To start</h3>
+                <ul class="dish-list">
+                  <li class="dish">
+                    <span class="dish-name">Steak tartare</span>
+                    <span class="dish-price">16 €</span>
+                    <span class="dish-note">smoked egg yolk, parsnip crisp</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Pil pil prawns</span>
+                    <span class="dish-price">18 €</span>
+                    <span class="dish-note">garlic, chilli, sourdough toast</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Burrata</span>
+                    <span class="dish-price">17 €</span>
+                    <span class="dish-note">grilled radicchio, XO prosciutto</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Vitello tonnato</span>
+                    <span class="dish-price">16 €</span>
+                    <span class="dish-note">crisp capers, pickled onion</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Carrot &amp; ginger</span>
+                    <span class="dish-price">11 €</span>
+                    <span class="dish-note">crème fraîche, pumpkin seed</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="menu-group">
+                <h3 class="menu-heading">Mains</h3>
+                <ul class="dish-list">
+                  <li class="dish">
+                    <span class="dish-name">Onglet steak</span>
+                    <span class="dish-price">27 €</span>
+                    <span class="dish-note">roast potatoes, charcutière</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Filet mignon</span>
+                    <span class="dish-price">34 €</span>
+                    <span class="dish-note">potato terrine, onion cream</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Duck breast</span>
+                    <span class="dish-price">29 €</span>
+                    <span class="dish-note">salt-baked beetroot, radicchio, jus</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Bavette burger</span>
+                    <span class="dish-price">22 €</span>
+                    <span class="dish-note">raclette, cognac onion, beer bun</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Adriatic bluefin tuna</span>
+                    <span class="dish-price">28 €</span>
+                    <span class="dish-note">’nduja, blanched kale</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Octopus</span>
+                    <span class="dish-price">26 €</span>
+                    <span class="dish-note">chickpea, ’nduja, salsa verde</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Sea bass</span>
+                    <span class="dish-price">26 €</span>
+                    <span class="dish-note">white bean, cavolo nero, lemon aïoli</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Mushroom ragù</span>
+                    <span class="dish-price">23 €</span>
+                    <span class="dish-note">gnocchi, black garlic, pecorino</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Grilled cabbage <span class="dish-tag">veg</span></span>
+                    <span class="dish-price">19 €</span>
+                    <span class="dish-note">tahini, buttermilk, salsa macha</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="menu-group">
+                <h3 class="menu-heading">Sides</h3>
+                <ul class="dish-list">
+                  <li class="dish">
+                    <span class="dish-name">Fries in beef fat</span>
+                    <span class="dish-price">6 €</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Roast potatoes</span>
+                    <span class="dish-price">6 €</span>
+                    <span class="dish-note">rosemary, garlic</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Radicchio salad</span>
+                    <span class="dish-price">7 €</span>
+                    <span class="dish-note">forest-fruit vinaigrette</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="menu-group">
+                <h3 class="menu-heading">Sweet</h3>
+                <ul class="dish-list">
+                  <li class="dish">
+                    <span class="dish-name">Sticky toffee pudding</span>
+                    <span class="dish-price">8 €</span>
+                    <span class="dish-note">cardamom ice cream</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Basque chocolate cheesecake</span>
+                    <span class="dish-price">8 €</span>
+                    <span class="dish-note">blood orange coulis</span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Chocolate tart</span>
+                    <span class="dish-price">7,50 €</span>
+                    <span class="dish-note">orange, amaretto, whipped cream</span>
+                  </li>
+                </ul>
+              </div>
+
+              <p class="menu-note">
+                The market decides. Plates move with the season, so ask what came up from Dolac this morning.
+                Ten wines by the glass, all Croatian.
+              </p>
+            </section>
+          </div>
+        </article>
+
+        <article class="tile tile--media tile--story" style="--i: 2">
+          <div class="tile-media" aria-hidden="true"></div>
+          <div class="tile-body">
+            <div class="tile-text">
+              <h2>Our story</h2>
+              <p>
+                Casual bistro, serious cooking. The crew behind Beštija — market mornings at Dolac, nights in the
+                courtyard off Masarykova.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="tile tile--media tile--reservations" style="--i: 3">
+          <div class="tile-media" aria-hidden="true"></div>
+          <div class="tile-body">
+            <div class="tile-text">
+              <h2>Reservations</h2>
+              <p>
+                Bib Gourmand 2023–2024. Tables are booked directly with the house — call or write and we’ll save
+                you a seat.
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article class="tile only-mobile" style="--i: 4">
+          <div class="tile-body">
+            <div class="tile-text">
+              <h2>Hours</h2>
+              <p>Tue–Sun<br />12:00 — 23:00<br />Monday closed</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="tile only-mobile" style="--i: 5">
+          <div class="tile-body">
+            <div class="tile-text">
+              <h2>Find us</h2>
+              <p>Masarykova 11/1<br />10000 Zagreb</p>
+            </div>
+          </div>
+        </article>
+      </main>
+    </div>
+    <button
+      type="button"
+      class="scroll-cue"
+      id="scroll-cue"
+      aria-label="Scroll to footer"
+    ></button>
+    </section>
+
+    <footer class="screen screen--footer" id="footer">
+      <div class="footer-inner">
+        <p class="footer-mark">beštija</p>
+        <p class="footer-meaning">
+          Beast — in the old tongue, a wild one. The name we cook under.
+        </p>
+
+        <div class="footer-badges" role="list" aria-label="Michelin Guide recognition">
+          <a
+            class="michelin-badge"
+            role="listitem"
+            href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Michelin Guide 2020"
+          >
+            <img src="/michelin-2020.svg" alt="Michelin 2020" width="96" height="96" loading="lazy" />
+          </a>
+          <a
+            class="michelin-badge"
+            role="listitem"
+            href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Michelin Guide 2021"
+          >
+            <img src="/michelin-2021.svg" alt="Michelin 2021" width="96" height="96" loading="lazy" />
+          </a>
+          <a
+            class="michelin-badge"
+            role="listitem"
+            href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Michelin Guide 2022"
+          >
+            <img src="/michelin-2022.svg" alt="Michelin 2022" width="96" height="96" loading="lazy" />
+          </a>
+          <a
+            class="michelin-badge"
+            role="listitem"
+            href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Michelin Bib Gourmand 2023"
+          >
+            <img src="/michelin-2023.svg" alt="Michelin Bib Gourmand 2023" width="96" height="96" loading="lazy" />
+          </a>
+          <a
+            class="michelin-badge"
+            role="listitem"
+            href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Michelin Bib Gourmand 2024"
+          >
+            <img src="/michelin-2024.svg" alt="Michelin Bib Gourmand 2024" width="96" height="96" loading="lazy" />
+          </a>
+        </div>
+
+        <p class="footer-tagline">
+          Casual bistro. Lunch, dinner. Nice vibes, delicious food, great drinks.
+          Michelin recommended 2020–2022 · Bib Gourmand 2023–2024.
+        </p>
+
+        <div class="footer-block">
+          <h2 class="footer-heading">Contact</h2>
+          <ul class="footer-list">
+            <li>
+              <a
+                href="https://www.google.com/maps/place/Bistro+Be%C5%A1tija/@45.8104707,15.9730264,19z"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Masarykova 11/1, Zagreb</a>
+            </li>
+            <li>
+              <a href="mailto:bestijamasarykova@gmail.com">bestijamasarykova@gmail.com</a>
+            </li>
+            <li>
+              <a href="tel:+385919228861">+385 91 922 88 61</a>
+            </li>
+            <li class="footer-hours">Tue–Sun 12:00–23:00 · Monday closed</li>
+          </ul>
+        </div>
+
+        <div class="footer-block">
+          <h2 class="footer-heading">Follow</h2>
+          <ul class="footer-socials">
+            <li>
+              <a
+                href="https://www.facebook.com/bistrobestija"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Facebook</a>
+            </li>
+            <li>
+              <a
+                href="https://www.instagram.com/bestija_bistro/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Instagram</a>
+            </li>
+            <li>
+              <a
+                href="https://www.tripadvisor.com/Restaurant_Review-g294454-d14093612-Reviews-Bistro_Bestija-Zagreb_Central_Croatia.html"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Tripadvisor</a>
+            </li>
+            <li>
+              <a
+                href="https://goo.gl/maps/eUQFCBp7WZzbBuCM9"
+                target="_blank"
+                rel="noopener noreferrer"
+              >Google</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </footer>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
