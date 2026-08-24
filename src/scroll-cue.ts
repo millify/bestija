@@ -38,8 +38,7 @@ export function revealScrollCue() {
 	cue.classList.add('is-live')
 
 	if (reduced()) {
-		show(cue, CHEVRON)
-		cue.classList.add('is-settled')
+		settleScrollCue()
 		return
 	}
 
@@ -66,4 +65,14 @@ export function revealScrollCue() {
 			cue.classList.add('is-settled')
 		}, 50)
 	}, 520)
+}
+
+/** Final chevron state with no mouse/scramble prelude. */
+export function settleScrollCue() {
+	const cue = document.getElementById('scroll-cue')
+	if (!cue) return
+	started = true
+	show(cue, CHEVRON)
+	cue.classList.remove('is-mouse', 'is-scrambling')
+	cue.classList.add('is-live', 'is-settled')
 }

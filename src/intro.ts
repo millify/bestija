@@ -1,5 +1,6 @@
 import { buildScripts, type WorldScript } from './glyphs'
-import { revealScrollCue } from './scroll-cue'
+import { revealScrollCue, settleScrollCue } from './scroll-cue'
+import { animationsEnabled } from './prefs'
 
 /**
  * Staged intro: the wordmark draws on the page, then each content card flies in
@@ -39,7 +40,7 @@ const CIPHER_MAX = 460
 /** Glyphs below this width get a narrow pool so swaps stay inside their slot. */
 const NARROW_WIDTH = 9
 
-const TEXT_SELECTOR = 'h2, p'
+const TEXT_SELECTOR = 'h2'
 
 interface Mark {
 	at: number
@@ -392,8 +393,8 @@ function begin() {
 	}
 
 	const visible = tiles.filter(isVisible)
-	const body = document.querySelector<HTMLElement>('.tile p')
-	scripts = body ? buildScripts(getComputedStyle(body).fontFamily) : []
+	const sample = document.querySelector<HTMLElement>('.tile h2')
+	scripts = sample ? buildScripts(getComputedStyle(sample).fontFamily) : []
 	const mode = scripts.length ? readMode() : 'cipher'
 
 	// If webfonts were slow, start from now so the sequence never plays out
@@ -454,8 +455,15 @@ function watchLayout() {
 }
 
 export function startIntro() {
-	root.classList.add('seq-ready', 'is-intro')
+	root.classList.add('seq-ready')
 	window.scrollTo(0, 0)
+
+	if (!animationsEnabled()) {
+		skipIntro()
+		return
+	}
+
+	root.classList.add('is-intro')
 	watchLayout()
 
 	// Glyph metrics are measured in pixels, so wait for webfonts to land.
@@ -463,4 +471,20 @@ export function startIntro() {
 		document.fonts?.ready ?? Promise.resolve(),
 		new Promise((resolve) => setTimeout(resolve, 1500)),
 	]).then(begin)
+}
+
+/** Jump to the settled gallery when entrance animation is turned off. */
+function skipIntro() {
+	const tiles = [
+		...document.querySelectorAll<HTMLElement>('.tile:not(.tile--logo)'),
+	]
+	for (const tile of tiles) {
+		revealInstantly(tile)
+		tile.classList.add('is-in')
+		tile.classList.remove('is-tile-in')
+	}
+
+	root.classList.remove('is-intro')
+	root.classList.add('intro-done')
+	settleScrollCue()
 }

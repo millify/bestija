@@ -2,6 +2,8 @@
 
 :root {
 	--ink: #ff4a25;
+	--link: #8ec8d8;
+	--link-hover: #b5dfe8;
 	--bg: #080807;
 	--edge: rgba(255, 255, 255, 0.11);
 	--text: #e8e6e3;
@@ -70,6 +72,8 @@ html[data-page="1"] .pager-track {
    Slightly roomier so a scroll cue can sit in the bottom gutter. */
 .shell {
 	--inset: clamp(10px, 1.15vw, 16px);
+	/* Shared inner card padding — home tiles + footer content cells. */
+	--pad: clamp(12px, 1.5vw, 26px);
 	box-sizing: border-box;
 	height: 100%;
 	min-height: 100%;
@@ -172,8 +176,8 @@ html.intro-done:not([data-page="1"]):not(.is-card-open) .scroll-cue.is-live {
 
 .grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
-	grid-template-rows: repeat(3, 1fr);
+	grid-template-columns: 1fr;
+	grid-template-rows: repeat(4, 1fr);
 	gap: var(--inset);
 	height: 100%;
 	perspective: 1500px;
@@ -189,7 +193,6 @@ html.intro-done:not([data-page="1"]):not(.is-card-open) .scroll-cue.is-live {
 	background: transparent;
 }
 
-/* Logo lives on the page — no card chrome, no fly-in. */
 .tile--logo {
 	border: none;
 	border-radius: 0;
@@ -227,6 +230,7 @@ html.js .tile:not(.tile--logo).is-tile-in {
 	position: absolute;
 	inset: 0;
 	z-index: 0;
+	border-radius: inherit;
 	background: center center / cover no-repeat;
 	filter: saturate(0.88) contrast(1.08) brightness(0.78)
 		blur(var(--media-blur, 0px));
@@ -242,12 +246,34 @@ html.js .tile:not(.tile--logo).is-tile-in {
 
 .tile--story .tile-media {
 	background-image: url("./assets/story-hero.webp");
-	background-position: center 28%;
+	background-position: center 18%;
 }
 
 .tile--reservations .tile-media {
 	background-image: url("./assets/reservations-hero.webp");
 	background-position: 35% center;
+}
+
+/* Mobile gallery cells are tighter — keep subjects framed inside the card. */
+@media (max-width: 899px) {
+	.tile-media {
+		transform: none;
+		animation: none;
+		background-size: cover;
+		background-position: center center;
+	}
+
+	.tile--menu .tile-media {
+		background-position: center 42%;
+	}
+
+	.tile--story .tile-media {
+		background-position: center 28%;
+	}
+
+	.tile--reservations .tile-media {
+		background-position: 40% center;
+	}
 }
 
 @keyframes drift {
@@ -309,7 +335,6 @@ html.js .tile:not(.tile--logo).is-tile-in {
 }
 
 .tile-body {
-	--pad: clamp(12px, 1.5vw, 26px);
 	position: relative;
 	z-index: 2;
 	height: 100%;
@@ -341,9 +366,9 @@ html.js .tile:not(.tile--logo).is-tile-in {
 }
 
 .tile h2 {
-	margin: 0 0 0.35em;
+	margin: 0;
 	font-family: "Josefin Sans", sans-serif;
-	font-size: clamp(1.05rem, 2.1vw, 1.9rem);
+	font-size: clamp(1.2rem, 2.35vw, 2.15rem);
 	font-weight: 200;
 	letter-spacing: 0.02em;
 	text-transform: lowercase;
@@ -353,7 +378,7 @@ html.js .tile:not(.tile--logo).is-tile-in {
 
 .tile p {
 	margin: 0;
-	font-size: clamp(0.7rem, 0.85vw, 0.9rem);
+	font-size: clamp(0.78rem, 0.95vw, 1rem);
 	font-weight: 200;
 	line-height: 1.55;
 	color: var(--muted);
@@ -387,6 +412,9 @@ html.js .tile:not(.tile--logo).is-tile-in {
 	width: 88%;
 	max-width: 420px;
 	height: auto;
+	aspect-ratio: 1168.4 / 350.3;
+	flex-shrink: 0;
+	align-self: center;
 	overflow: visible;
 	opacity: 0;
 	animation: logo-show 0s step-end calc(var(--shift) + var(--logo-start)) forwards;
@@ -446,6 +474,33 @@ html.js .tile:not(.tile--logo).is-tile-in {
 	text-transform: uppercase;
 	color: var(--muted);
 	animation: rise 0.8s ease-out calc(var(--shift) + var(--logo-start) + 1.5s) both;
+}
+
+/* Animation preference off — settled UI; logo fades after layout is stable. */
+html.skip-anim .tile:not(.tile--logo),
+html.skip-anim .logo,
+html.skip-anim .logo-sub {
+	animation: none;
+}
+
+html.skip-anim .logo,
+html.skip-anim .logo-sub {
+	opacity: 0;
+	animation: fade-in 0.5s ease-out 0.08s forwards;
+}
+
+html.skip-anim .wordmark > * {
+	stroke-dashoffset: 0;
+	animation: none;
+}
+
+html.skip-anim.js .tile:not(.tile--logo) .tile-body,
+html.skip-anim.js .tile-media {
+	opacity: 1;
+}
+
+html.skip-anim .tile:not(.tile--logo) {
+	opacity: 1;
 }
 
 /* --- Staged content reveal: media first, then glyph-by-glyph decode --- */
@@ -563,11 +618,11 @@ html.js .tile--media.is-media-in::after {
 	backdrop-filter: blur(7px);
 	opacity: 0;
 	pointer-events: none;
-	transition: opacity 0.45s ease;
+	/* Opacity is driven by WAAPI in expand.ts — keep CSS from fighting it. */
+	transition: none;
 }
 
 .card-backdrop.is-on {
-	opacity: 1;
 	pointer-events: auto;
 }
 
@@ -585,6 +640,16 @@ html.js .tile--media.is-media-in::after {
 	box-shadow: 0 40px 90px -24px rgba(0, 0, 0, 0.95);
 }
 
+/* Kill type reflow transitions while the box is flying — they fight WAAPI. */
+.tile.is-traveling .tile-body,
+.tile.is-traveling h2,
+.tile.is-traveling p,
+.tile.is-closing .tile-body,
+.tile.is-closing h2,
+.tile.is-closing p {
+	transition: none !important;
+}
+
 .tile-body,
 .tile h2,
 .tile p {
@@ -594,6 +659,8 @@ html.js .tile--media.is-media-in::after {
 
 .tile.is-full .tile-body {
 	--pad: clamp(22px, 4.5vw, 72px);
+	/* Padding lives on the lead / sheet so the lead can be exactly one scrollport tall. */
+	padding: 0;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	touch-action: pan-y;
@@ -674,7 +741,9 @@ html.js .tile--media.is-media-in::after {
 /* --- Menu sheet: the second screen inside the expanded menu card --- */
 
 /* The lead holds one full card-height, so the sheet starts below the fold. */
-.tile--menu .tile-body {
+.tile--menu .tile-body,
+.tile--story .tile-body,
+.tile--reservations .tile-body {
 	display: block;
 }
 
@@ -683,6 +752,13 @@ html.js .tile--media.is-media-in::after {
 	flex-direction: column;
 	gap: 0.6em;
 	min-height: 100%;
+}
+
+/* One full card-tall hero; the solid sheet starts on the next scroll screen. */
+.tile.is-full .tile-lead {
+	box-sizing: border-box;
+	min-height: 100%;
+	padding: var(--pad);
 }
 
 .card-more {
@@ -707,16 +783,181 @@ html.js .tile--media.is-media-in::after {
 	transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-.tile--menu.is-full .scroll-hint {
+.tile.is-full .scroll-hint {
 	display: inline-flex;
 }
 
+/* Mobile open card: near-full lift, hero band + scrollable sheet. */
+@media (max-width: 899px) {
+	.tile.is-open,
+	.tile:not(.tile--logo).is-open:hover {
+		border-radius: var(--radius-tile);
+		box-shadow: 0 28px 64px -28px rgba(0, 0, 0, 0.9);
+	}
+
+	.tile.is-full .tile-body {
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+	}
+
+	/*
+	  Open: hero-band photo from frame one (no second background beat).
+	  Close (`is-closing`): pin photo to inset:0 + hide sheet immediately —
+	  no height/% morphs that fight the shrinking parent.
+	*/
+	.tile.is-full .tile-media {
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: auto;
+		height: 28%;
+		border-radius: inherit;
+	}
+
+	.tile.is-full.tile--media::after {
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: auto;
+		height: 28%;
+		border-radius: inherit;
+		clip-path: none;
+		background:
+			linear-gradient(
+				to top,
+				rgba(6, 6, 6, 0.97) 0%,
+				rgba(6, 6, 6, 0.55) 28%,
+				rgba(6, 6, 6, 0.22) 48%,
+				rgba(6, 6, 6, 0.12) 72%,
+				rgba(6, 6, 6, 0.1) 100%
+			);
+	}
+
+	.tile.is-full .tile-lead {
+		flex: 0 0 28%;
+		min-height: 0;
+		height: 28%;
+		justify-content: flex-end;
+		padding: clamp(44px, 11vw, 58px) clamp(16px, 4.5vw, 26px)
+			clamp(14px, 3.5vw, 20px);
+	}
+
+	.tile.is-full .card-more {
+		flex: 1 1 72%;
+		min-height: 0;
+		height: 72%;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		touch-action: pan-y;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(255, 74, 37, 0.35) transparent;
+		opacity: 1;
+	}
+
+	/* Close interior = grid card. Instant — no transitions fighting travel. */
+	.tile.is-full.is-closing .tile-media,
+	.tile.is-full.is-closing.tile--media::after {
+		inset: 0;
+		height: auto;
+		transition: none;
+	}
+
+	.tile.is-full.is-closing.tile--media::after {
+		/* Match the resting grid veil — no mid-close gradient swap. */
+		background:
+			linear-gradient(
+				to top,
+				rgba(6, 6, 6, 0.95) 0%,
+				rgba(6, 6, 6, 0.9) 14%,
+				rgba(6, 6, 6, 0.82) 26%,
+				rgba(6, 6, 6, 0.7) 38%,
+				rgba(6, 6, 6, 0.57) 48%,
+				rgba(6, 6, 6, 0.45) 58%,
+				rgba(6, 6, 6, 0.34) 72%,
+				rgba(6, 6, 6, 0.26) 86%,
+				rgba(6, 6, 6, 0.22) 100%
+			),
+			linear-gradient(
+				105deg,
+				rgba(6, 6, 6, 0.7) 0%,
+				rgba(6, 6, 6, 0.52) 18%,
+				rgba(6, 6, 6, 0.35) 33%,
+				rgba(6, 6, 6, 0.2) 45%,
+				rgba(6, 6, 6, 0.09) 55%,
+				rgba(6, 6, 6, 0.03) 62%,
+				rgba(6, 6, 6, 0) 72%
+			);
+	}
+
+	.tile.is-full.is-closing .tile-body {
+		display: flex;
+		flex-direction: column;
+		padding: var(--pad);
+		overflow: hidden;
+	}
+
+	.tile.is-full.is-closing .tile-lead {
+		flex: 1 1 auto;
+		height: auto;
+		min-height: 0;
+		padding: 0;
+		justify-content: flex-end;
+		transition: none;
+	}
+
+	.tile.is-full.is-closing .card-more {
+		display: none;
+	}
+
+	/* Same type as the resting gallery card so teardown doesn’t resize copy. */
+	.tile.is-full.is-closing h2 {
+		font-size: clamp(1.2rem, 2.35vw, 2.15rem);
+		transition: none !important;
+	}
+
+	.tile.is-full.is-closing p {
+		font-size: clamp(0.78rem, 0.95vw, 1rem);
+		transition: none !important;
+	}
+
+	.tile.is-full .card-more::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.tile.is-full .card-more::-webkit-scrollbar-thumb {
+		border-radius: 3px;
+		background: rgba(255, 74, 37, 0.35);
+	}
+
+	.tile.is-full h2 {
+		font-size: clamp(1.85rem, 9vw, 2.6rem);
+	}
+
+	.tile.is-full p {
+		font-size: clamp(0.88rem, 3.6vw, 1.02rem);
+	}
+
+	.tile.is-full .scroll-hint {
+		display: none;
+	}
+
+	.menu-sheet,
+	.story-sheet,
+	.reserve-sheet {
+		padding-top: clamp(20px, 4.5vw, 32px);
+		padding-bottom: clamp(28px, 6vw, 40px);
+		border-top: 1px solid var(--edge);
+	}
+}
+
 .scroll-hint svg {
-	width: 13px;
-	height: 13px;
+	width: 14px;
+	height: 14px;
 	fill: none;
 	stroke: var(--ink);
-	stroke-width: 1.4;
+	stroke-width: 2;
 	stroke-linecap: round;
 	stroke-linejoin: round;
 	animation: nudge 1.9s ease-in-out infinite;
@@ -738,19 +979,16 @@ html.js .tile--media.is-media-in::after {
 	transform: translateY(8px);
 }
 
-/* Full-bleed against the card edges, over the static kitchen shot. */
-.menu-sheet {
+/* Hard edge off the hero — solid page background for the scroll sheet. */
+.menu-sheet,
+.story-sheet,
+.reserve-sheet {
 	position: relative;
-	margin: clamp(30px, 6vh, 68px) calc(var(--pad) * -1) calc(var(--pad) * -1);
+	z-index: 2;
+	margin: 0;
 	padding: clamp(30px, 4vw, 66px) var(--pad) calc(var(--pad) + 24px);
-	background: linear-gradient(
-		to bottom,
-		rgba(8, 8, 7, 0) 0%,
-		rgba(8, 8, 7, 0.86) 7%,
-		rgba(8, 8, 7, 0.97) 20%,
-		rgba(8, 8, 7, 0.99) 100%
-	);
-	backdrop-filter: blur(12px);
+	background: var(--bg);
+	border-top: 1px solid var(--edge);
 }
 
 .menu-head {
@@ -789,6 +1027,80 @@ html.js .tile--media.is-media-in::after {
 	letter-spacing: 0.3em;
 	text-transform: uppercase;
 	color: var(--muted);
+}
+
+.menu-layout {
+	display: grid;
+	grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+	gap: clamp(28px, 4vw, 64px);
+	align-items: start;
+}
+
+.menu-col--allergens {
+	position: sticky;
+	top: 0.5rem;
+}
+
+.allergen-grid {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.85rem 0.55rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.allergen {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.4em;
+	text-align: center;
+	color: var(--allergen, var(--muted));
+}
+
+.allergen-icon {
+	display: block;
+	width: clamp(2.1rem, 3.2vw, 2.7rem);
+	height: clamp(2.1rem, 3.2vw, 2.7rem);
+	background-color: var(--allergen, var(--muted));
+	-webkit-mask: var(--icon) center / contain no-repeat;
+	mask: var(--icon) center / contain no-repeat;
+	-webkit-mask-source-type: alpha;
+	mask-mode: alpha;
+}
+
+.allergen span {
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.52rem;
+	font-weight: 300;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	line-height: 1.25;
+	color: inherit;
+}
+
+@media (max-width: 900px) {
+	.menu-layout {
+		grid-template-columns: 1fr;
+	}
+
+	.menu-col--allergens {
+		position: static;
+		order: 2;
+		padding-top: 0.5rem;
+		border-top: 1px solid var(--edge);
+	}
+
+	.allergen-grid {
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+	}
+}
+
+@media (max-width: 560px) {
+	.allergen-grid {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+	}
 }
 
 .dish-list {
@@ -863,14 +1175,541 @@ html.js .tile--media.is-media-in::after {
 	color: var(--muted);
 }
 
+.sheet-head {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 0.6em 1.5em;
+	padding-bottom: 1.3em;
+	margin-bottom: clamp(22px, 2.6vw, 40px);
+	border-bottom: 1px solid var(--edge);
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.7rem;
+	font-weight: 300;
+	letter-spacing: 0.26em;
+	text-transform: uppercase;
+}
+
+.sheet-kicker {
+	color: var(--ink);
+}
+
+.sheet-aside {
+	color: var(--muted);
+}
+
+.sheet-lead {
+	max-width: 42ch;
+	margin: 0 0 clamp(28px, 3.4vw, 48px);
+	font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+	font-weight: 200;
+	line-height: 1.55;
+	color: var(--text);
+}
+
+.story-brand {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 0.28em;
+	max-width: 42ch;
+	margin: 0 0 clamp(28px, 3.4vw, 48px);
+	text-align: left;
+}
+
+.story-mark {
+	margin: 0;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: clamp(1.55rem, 3.2vw, 2.1rem);
+	font-weight: 200;
+	letter-spacing: 0.18em;
+	text-transform: lowercase;
+	color: var(--text);
+}
+
+.story-pron {
+	margin: 0;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: clamp(0.68rem, 1.05vw, 0.88rem);
+	font-weight: 300;
+	letter-spacing: 0.16em;
+	text-transform: lowercase;
+	color: var(--muted);
+}
+
+.story-meaning {
+	margin: 0.75em 0 0;
+	max-width: 36ch;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: clamp(0.78rem, 1.15vw, 0.92rem);
+	font-weight: 300;
+	letter-spacing: 0.06em;
+	line-height: 1.65;
+	color: var(--ink);
+	text-wrap: balance;
+}
+
+.sheet-block + .sheet-block {
+	margin-top: clamp(26px, 3.2vw, 44px);
+}
+
+.sheet-heading {
+	margin: 0 0 0.75em;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.7rem;
+	font-weight: 300;
+	letter-spacing: 0.3em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.sheet-block p {
+	max-width: 46ch;
+	margin: 0;
+	font-size: clamp(0.92rem, 1.35vw, 1.08rem);
+	font-weight: 200;
+	line-height: 1.65;
+	color: var(--muted);
+}
+
+.sheet-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.sheet-list li {
+	margin: 0 0 0.55em;
+	font-size: clamp(0.95rem, 1.4vw, 1.12rem);
+	font-weight: 200;
+	line-height: 1.5;
+	color: var(--text);
+}
+
+.sheet-list a {
+	color: inherit;
+	text-decoration: none;
+	border-bottom: 1px solid transparent;
+	transition: color 0.25s ease, border-color 0.25s ease;
+}
+
+.sheet-list a:hover {
+	color: var(--ink);
+	border-bottom-color: rgba(255, 74, 37, 0.45);
+}
+
+.visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	margin: -1px;
+	overflow: hidden;
+	clip: rect(0, 0, 0, 0);
+	white-space: nowrap;
+	border: 0;
+}
+
+/* --- Reservations booking sheet --- */
+
+.reserve-layout {
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: clamp(1.5rem, 3vw, 2.5rem);
+	align-items: start;
+}
+
+.reserve-info .sheet-head {
+	margin-bottom: 0.85rem;
+	padding-bottom: 0.85rem;
+}
+
+.reserve-info .sheet-lead {
+	margin-bottom: clamp(1.1rem, 2vw, 1.6rem);
+}
+
+.reserve-info .sheet-block + .sheet-block {
+	margin-top: clamp(1.1rem, 2vw, 1.6rem);
+}
+
+.reserve-book {
+	position: relative;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+}
+
+.reserve-step[hidden] {
+	display: none !important;
+}
+
+.reserve-step.is-active {
+	display: flex;
+	flex-direction: column;
+	gap: 0.7rem;
+}
+
+.reserve-book-head {
+	margin: 0;
+}
+
+.reserve-book-title {
+	margin: 0;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: clamp(1.25rem, 2.2vw, 1.7rem);
+	font-weight: 200;
+	letter-spacing: 0.04em;
+	line-height: 1.25;
+	color: var(--text);
+}
+
+.reserve-book-sub {
+	margin: 0.28em 0 0;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.72rem;
+	font-weight: 300;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
+
+.reserve-book-summary {
+	margin: 0.45em 0 0;
+	font-size: 0.88rem;
+	font-weight: 300;
+	line-height: 1.4;
+	color: var(--text);
+}
+
+.reserve-pick-row {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.55rem;
+}
+
+.reserve-field {
+	display: block;
+	min-width: 0;
+}
+
+.reserve-form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+}
+
+.reserve-control {
+	box-sizing: border-box;
+	width: 100%;
+	margin: 0;
+	padding: 0.68em 0.85em;
+	border: 1px solid var(--edge);
+	border-radius: calc(var(--radius-tile) * 0.65);
+	background: rgba(255, 255, 255, 0.04);
+	color: var(--text);
+	font-family: "Karla", system-ui, sans-serif;
+	font-size: 0.92rem;
+	font-weight: 300;
+	line-height: 1.3;
+	appearance: none;
+	outline: none;
+	transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.reserve-control::placeholder {
+	color: var(--muted);
+}
+
+.reserve-control:hover {
+	border-color: rgba(255, 255, 255, 0.22);
+}
+
+.reserve-control:focus-visible {
+	border-color: rgba(255, 74, 37, 0.65);
+	background: rgba(255, 255, 255, 0.06);
+}
+
+select.reserve-control {
+	background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+		linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+	background-position: calc(100% - 1.15em) 55%, calc(100% - 0.85em) 55%;
+	background-size: 5px 5px, 5px 5px;
+	background-repeat: no-repeat;
+	padding-right: 2.2em;
+}
+
+input[type="date"].reserve-control {
+	color-scheme: dark;
+	min-height: 2.6em;
+}
+
+.reserve-times {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	max-height: min(36vh, 18rem);
+	overflow-y: auto;
+	border: 1px solid var(--edge);
+	border-radius: calc(var(--radius-tile) * 0.65);
+	background: rgba(255, 255, 255, 0.03);
+	scrollbar-width: thin;
+	scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+.reserve-times::-webkit-scrollbar {
+	width: 6px;
+}
+
+.reserve-times::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.2);
+	border-radius: 999px;
+}
+
+.reserve-time {
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 0.7em 0.95em;
+	border: 0;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+	background: transparent;
+	color: var(--text);
+	font-family: "Karla", system-ui, sans-serif;
+	font-size: 0.92rem;
+	font-weight: 300;
+	text-align: left;
+	cursor: pointer;
+	transition: background 0.2s ease, color 0.2s ease;
+}
+
+.reserve-time:last-child {
+	border-bottom: 0;
+}
+
+.reserve-time:hover {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+.reserve-time.is-selected {
+	background: rgba(255, 74, 37, 0.14);
+	color: var(--text);
+}
+
+.reserve-time:focus-visible {
+	outline: 1px solid rgba(255, 74, 37, 0.55);
+	outline-offset: -1px;
+}
+
+.reserve-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.4em;
+	min-height: 2.55rem;
+	padding: 0.55em 1.15em;
+	border: 1px solid transparent;
+	border-radius: calc(var(--radius-tile) * 0.85);
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.72rem;
+	font-weight: 300;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	cursor: pointer;
+	transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease,
+		opacity 0.25s ease;
+}
+
+.reserve-btn:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+.reserve-btn--primary {
+	width: 100%;
+	margin-top: 0.15rem;
+	border-color: rgba(255, 74, 37, 0.45);
+	background: transparent;
+	color: var(--ink);
+}
+
+.reserve-btn--primary:hover:not(:disabled) {
+	border-color: var(--ink);
+	background: rgba(255, 74, 37, 0.1);
+	color: #ff7a5c;
+}
+
+.reserve-btn--primary:focus-visible {
+	outline: 1px solid rgba(255, 74, 37, 0.55);
+	outline-offset: 2px;
+}
+
+.reserve-btn--ghost {
+	background: transparent;
+	border-color: var(--edge);
+	color: var(--muted);
+}
+
+.reserve-btn--ghost:hover {
+	border-color: rgba(255, 255, 255, 0.28);
+	color: var(--text);
+}
+
+.reserve-actions {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.55rem;
+	margin-top: 0.25rem;
+}
+
+.reserve-actions .reserve-btn {
+	width: 100%;
+	margin-top: 0;
+}
+
+.reserve-actions .reserve-btn--primary {
+	border-color: transparent;
+	background: var(--ink);
+	color: #fff;
+}
+
+.reserve-actions .reserve-btn--primary:hover:not(:disabled) {
+	background: #ff6a4a;
+	color: #fff;
+}
+
+.reserve-legal {
+	margin: 0.2rem 0 0;
+	font-size: 0.8rem;
+	font-weight: 300;
+	line-height: 1.45;
+	color: var(--muted);
+}
+
+.reserve-legal a {
+	color: var(--ink);
+	text-decoration: none;
+	border-bottom: 1px solid rgba(255, 74, 37, 0.35);
+}
+
+.reserve-legal a:hover {
+	border-bottom-color: var(--ink);
+}
+
+.reserve-check {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.6em;
+	margin: 0;
+	font-size: 0.8rem;
+	font-weight: 300;
+	line-height: 1.45;
+	color: var(--muted);
+	cursor: pointer;
+}
+
+.reserve-check input {
+	margin-top: 0.2em;
+	accent-color: var(--ink);
+	flex-shrink: 0;
+}
+
+.reserve-done-copy {
+	margin: 0;
+	max-width: 40ch;
+	font-size: 0.95rem;
+	font-weight: 300;
+	line-height: 1.5;
+	color: var(--muted);
+}
+
+.reserve-dialog {
+	position: absolute;
+	inset: 0;
+	z-index: 4;
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+	background: rgba(8, 8, 7, 0.72);
+}
+
+.reserve-dialog[hidden] {
+	display: none !important;
+}
+
+.reserve-dialog-card {
+	width: min(100%, 22rem);
+	padding: 1.1rem 1.15rem 0.9rem;
+	border: 1px solid var(--edge);
+	border-radius: var(--radius-tile);
+	background: #141412;
+	box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+
+.reserve-dialog-copy {
+	margin: 0 0 1rem;
+	font-size: 0.92rem;
+	font-weight: 300;
+	line-height: 1.5;
+	color: var(--text);
+}
+
+.reserve-dialog-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--edge);
+}
+
+.reserve-dialog-actions .reserve-btn {
+	width: auto;
+	min-width: 5.25rem;
+	min-height: 2.25rem;
+	margin-top: 0;
+	padding-inline: 1em;
+}
+
+.reserve-dialog-actions .reserve-btn--primary {
+	border-color: transparent;
+	background: var(--ink);
+	color: #fff;
+}
+
+.reserve-dialog-actions .reserve-btn--primary:hover:not(:disabled) {
+	background: #ff6a4a;
+	color: #fff;
+}
+
+@media (min-width: 900px) {
+	.reserve-layout {
+		grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+		gap: clamp(1.75rem, 3.5vw, 3rem);
+	}
+
+	.reserve-book {
+		position: sticky;
+		top: 0.5rem;
+	}
+
+	.reserve-times {
+		max-height: min(34vh, 17rem);
+	}
+}
+
 /* Armed by the expand script, released as each row scrolls into the card. */
-.menu-sheet .reveal {
+.menu-sheet .reveal,
+.story-sheet .reveal,
+.reserve-sheet .reveal {
 	opacity: 0;
 	transform: translateY(18px);
 	transition: opacity 0.55s ease, transform 0.55s var(--ease-out-back);
 }
 
-.menu-sheet .reveal.is-in-view {
+.menu-sheet .reveal.is-in-view,
+.story-sheet .reveal.is-in-view,
+.reserve-sheet .reveal.is-in-view {
 	opacity: 1;
 	transform: none;
 }
@@ -942,6 +1781,7 @@ html.js .tile--media.is-media-in::after {
 
 @media (min-width: 900px) {
 	.grid {
+		grid-template-columns: 1fr 1fr;
 		grid-template-rows: repeat(2, 1fr);
 	}
 
@@ -957,41 +1797,481 @@ html.js .tile--media.is-media-in::after {
 /* --- Footer screen --- */
 
 .screen--footer {
+	--inset: clamp(10px, 1.15vw, 16px);
 	position: relative;
-	display: grid;
-	place-items: center;
-	padding: clamp(28px, 5vw, 64px) clamp(20px, 4vw, 48px);
+	display: flex;
+	flex-direction: column;
+	height: 100svh;
+	min-height: 100svh;
+	padding: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
 	background: var(--bg);
 }
 
-.footer-inner {
+.screen--footer .shell {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	justify-content: stretch;
+	width: 100%;
+	height: 100%;
+	min-height: 0;
+	/* Same inset rhythm as the home gallery shell. */
+	padding: var(--inset);
+	padding-bottom: calc(var(--inset) + 1.1rem);
+	gap: 0;
+}
+
+.footer-grid {
+	display: grid;
+	grid-template-columns: 1fr;
+	/*
+	  Mobile: stage = 2fr (≈ two home rows), middle = 1fr centering
+	  zone for auto-sized Visit/Follow, footer = auto pinned.
+	*/
+	grid-template-rows: 2fr 1fr auto;
+	gap: var(--inset);
+	width: 100%;
+	height: 100%;
+	flex: 1;
+	min-height: 0;
+	align-content: stretch;
+}
+
+/* Keep the kitchen frame from bleeding into the lede below. */
+.ftile--video {
+	z-index: 1;
+}
+
+.ftile--identity {
+	z-index: 0;
+}
+
+/* Mobile: stage → Visit/Follow → legal/motto (pinned). */
+.ftile--stage {
+	order: 0;
+}
+
+.ftile--actions {
+	order: 1;
+}
+
+.ftile--bottom {
+	order: 2;
+}
+
+.ftile {
+	position: relative;
+	overflow: hidden;
+	min-width: 0;
+	/* Footer is the backside — no tile chrome (cards stay on the home grid). */
+	border: none;
+	border-radius: 0;
+	background: transparent;
+}
+
+/*
+  Stage fills the 2fr row. Video takes leftover height; identity hugs
+  its content at the bottom so Michelin sits on the stage edge — then
+  Visit/Follow can truly center in the 1fr between stage and footer.
+*/
+.ftile--stage {
+	display: grid;
+	grid-template-rows: 1fr auto;
+	gap: var(--inset);
+	min-height: 0;
+	height: 100%;
+}
+
+.ftile--stage .ftile--video {
+	min-height: 0;
+	height: 100%;
+}
+
+.ftile--stage .ftile--identity {
+	min-height: 0;
+	height: auto;
+}
+
+.ftile--video {
+	min-height: 0;
+	height: 100%;
+	background: transparent;
+	border-radius: var(--radius-tile);
+	opacity: 0;
+	transition: opacity 0.95s ease;
+}
+
+/*
+  Second track is 1fr (the space between stage + footer).
+  Visit/Follow themselves stay auto-sized and centered in that space.
+*/
+.ftile--actions {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: clamp(1.4rem, 2.4vw, 2.2rem);
-	width: min(100%, 42rem);
+	justify-content: center;
+	gap: 1.15rem;
+	min-height: 0;
+	height: 100%;
+	align-self: stretch;
+	padding: var(--pad);
+	box-sizing: border-box;
+}
+
+.ftile--actions .ftile--visit,
+.ftile--actions .ftile--follow {
+	height: auto;
+	min-height: 0;
+	flex: 0 0 auto;
+	padding: 0;
+}
+
+html.is-footer-video-on .ftile--video {
+	opacity: 1;
+}
+
+/*
+  Flip and crop are split on purpose.
+  Source footage: cooks/pass-through on the RIGHT, pink wall + doors on the LEFT.
+  1) Zoom/pan the <video> in source space so only the kitchen fills the tile.
+  2) Flip the wrapper so cooks read on the left — without fighting transform-origin.
+*/
+.footer-video-flip {
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+	overflow: hidden;
+	transform: scaleX(-1);
+	transform-origin: center center;
+}
+
+.footer-video {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	/* Hard bias to the pass-through (right side of source). */
+	/* Y nudged down so the cook’s hands / pass stay in frame after zoom. */
+	object-position: 92% 55%;
+	/*
+	  Mild zoom: a sliver of pink wall reads on the edge after flip,
+	  but not far enough to show the door knob.
+	*/
+	transform: scale(1.30);
+	transform-origin: 92% 55%;
+	filter: saturate(0.92) contrast(1.05) brightness(0.78);
+}
+
+.ftile-veil {
+	position: absolute;
+	inset: 0;
+	z-index: 1;
+	pointer-events: none;
+	/* Mobile: light vertical wash only — no side fade when text sits below. */
+	background: linear-gradient(
+		180deg,
+		rgba(8, 8, 7, 0.1) 0%,
+		rgba(8, 8, 7, 0.22) 100%
+	);
+}
+
+@media (min-width: 900px) {
+	.ftile-veil {
+		/*
+		  Desktop: right-edge dissolve into page bg — softens the pink wall so the
+		  kitchen reads into the identity cell without a hard cut.
+		*/
+		background:
+			linear-gradient(
+				90deg,
+				transparent 0%,
+				transparent 42%,
+				rgba(8, 8, 7, 0.28) 62%,
+				rgba(8, 8, 7, 0.72) 82%,
+				var(--bg) 100%
+			),
+			linear-gradient(
+				180deg,
+				rgba(8, 8, 7, 0.1) 0%,
+				rgba(8, 8, 7, 0.22) 100%
+			);
+	}
+}
+
+.ftile--identity {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	min-height: 0;
+	height: 100%;
+	padding: var(--pad);
+	opacity: 0;
+	transition: opacity 0.55s ease;
+}
+
+html.is-footer-brand-on .ftile--identity {
+	opacity: 1;
+}
+
+.footer-identity-stack {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: clamp(1rem, 2.2vh, 1.5rem);
+	width: fit-content;
+	max-width: 100%;
+	margin-inline: auto;
 	text-align: center;
 }
 
-.footer-mark {
-	margin: 0;
-	font-family: "Josefin Sans", sans-serif;
-	font-size: clamp(1.6rem, 3.2vw, 2.4rem);
-	font-weight: 200;
-	letter-spacing: 0.18em;
-	text-transform: lowercase;
-	color: var(--text);
+.footer-lede {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.55em;
+	width: fit-content;
+	max-width: 100%;
+	padding-inline: clamp(0.5rem, 1.5vw, 1.25rem);
+	text-align: center;
 }
 
-.footer-meaning {
-	margin: -0.85em 0 0;
-	max-width: 28ch;
+.footer-lede-title {
+	margin: 0;
 	font-family: "Josefin Sans", sans-serif;
-	font-size: clamp(0.72rem, 1.1vw, 0.82rem);
+	font-size: clamp(1.35rem, 3.4vw, 2.85rem);
+	font-weight: 200;
+	letter-spacing: 0.04em;
+	line-height: 1.2;
+	color: var(--text);
+	text-align: center;
+	text-wrap: balance;
+}
+
+@media (min-width: 900px) {
+	.footer-lede-title {
+		white-space: nowrap;
+		text-wrap: unset;
+	}
+}
+
+.footer-lede-body {
+	margin: 0;
+	max-width: 36ch;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: clamp(0.88rem, 1.45vw, 1.15rem);
 	font-weight: 300;
-	letter-spacing: 0.08em;
+	letter-spacing: 0.05em;
 	line-height: 1.55;
+	color: var(--muted);
+	text-align: center;
+	text-wrap: pretty;
+	opacity: 0;
+	transition: opacity 0.35s ease;
+}
+
+html.is-footer-lede-body-on .footer-lede-body {
+	opacity: 1;
+}
+
+.footer-lede-title .word-script {
+	color: rgba(255, 74, 37, 0.55);
+	text-shadow: 0 0 16px rgba(255, 74, 37, 0.25);
+}
+
+.footer-lede-body .word-script {
+	color: rgba(232, 230, 227, 0.35);
+	text-shadow: none;
+}
+
+.footer-lede .ch.is-scramble {
 	color: var(--ink);
+}
+
+.footer-michelin {
+	display: flex;
+	flex-direction: column;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.75rem;
+	padding-inline: clamp(0.5rem, 1.5vw, 1.25rem);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+html.is-footer-revealed .footer-michelin {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.ftile--visit,
+.ftile--follow {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0;
+	padding: 0;
+	text-align: center;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+.ftile--actions .footer-hours-line {
+	max-width: none;
+}
+
+.footer-block--visit {
+	gap: 0.55em;
+}
+
+.footer-block--follow {
+	gap: 0.55em;
+}
+
+html.is-footer-revealed .ftile--visit,
+html.is-footer-revealed .ftile--follow {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.footer-block {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.55em;
+	width: 100%;
+	text-align: center;
+}
+
+.footer-block .footer-heading {
+	margin: 0;
+	padding: 0;
+	border: none;
+	width: auto;
+}
+
+.footer-heading {
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.62rem;
+	font-weight: 300;
+	/* Balance the extra gap letter-spacing leaves after the last letter. */
+	letter-spacing: 0.28em;
+	text-indent: 0.28em;
+	text-transform: uppercase;
+	color: var(--muted);
+	text-align: center;
+}
+
+.footer-icons {
+	display: flex;
+	flex-wrap: nowrap;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem 0.75rem;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.footer-icon-link {
+	display: grid;
+	place-items: center;
+	width: 2.55rem;
+	height: 2.55rem;
+	border: 1px solid rgba(255, 74, 37, 0.28);
+	border-radius: 999px;
+	color: var(--ink);
+	text-decoration: none;
+	transition:
+		color 0.25s ease,
+		border-color 0.25s ease,
+		background 0.25s ease,
+		transform 0.35s var(--ease-out-back);
+}
+
+.footer-icon {
+	display: block;
+	width: 1.15rem;
+	height: 1.15rem;
+}
+
+.footer-icon--brand {
+	width: 1.05rem;
+	height: 1.05rem;
+}
+
+.footer-icon-link:hover {
+	color: #ff6a4a;
+	border-color: rgba(255, 106, 74, 0.7);
+	background: rgba(255, 74, 37, 0.08);
+	transform: translateY(-2px);
+}
+
+.footer-icon-link:focus-visible {
+	outline: 1px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.footer-hours-line {
+	margin: 0;
+	font-size: clamp(0.8rem, 1.05vw, 0.92rem);
+	font-weight: 200;
+	line-height: 1.45;
+	color: var(--muted);
+	text-align: center;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+.footer-bottom,
+.ftile--bottom {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 100%;
+	min-height: 0;
+	height: auto;
+	margin-top: 0;
+	/* Space between the motto/hours stack and the legal line. */
+	gap: 0.55rem;
+	padding: var(--pad);
+	box-sizing: border-box;
+}
+
+/* Motto + hours read as one unit; legal sits just under as a quieter line. */
+.footer-bottom-stack {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.28rem;
+	width: 100%;
+}
+
+.footer-legal {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: center;
+	gap: clamp(0.45rem, 0.9vw, 0.7rem);
+	flex-shrink: 0;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
 }
 
 .footer-badges {
@@ -999,13 +2279,14 @@ html.js .tile--media.is-media-in::after {
 	flex-wrap: wrap;
 	justify-content: center;
 	align-items: center;
-	gap: clamp(0.35rem, 0.9vw, 0.6rem);
+	gap: clamp(0.3rem, 0.8vw, 0.5rem);
+	margin: 0;
 }
 
 .michelin-badge {
 	display: block;
-	width: clamp(48px, 7.5vw, 64px);
-	height: clamp(48px, 7.5vw, 64px);
+	width: clamp(34px, 4.5vw, 48px);
+	height: clamp(34px, 4.5vw, 48px);
 	opacity: 0.92;
 	transition: opacity 0.25s ease, transform 0.35s var(--ease-out-back);
 }
@@ -1024,75 +2305,359 @@ html.js .tile--media.is-media-in::after {
 
 .footer-tagline {
 	margin: 0;
-	max-width: 36ch;
-	font-size: clamp(0.85rem, 1.2vw, 1rem);
+	font-size: clamp(0.8rem, 1.1vw, 0.92rem);
 	font-weight: 200;
-	line-height: 1.65;
-	color: var(--muted);
+	line-height: 1.4;
+	color: var(--text);
+	max-width: 44ch;
 }
 
-.footer-block {
+.footer-tagline--michelin {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 0.85em;
-}
-
-.footer-heading {
-	margin: 0;
+	gap: 0.18em;
+	margin: 0 auto;
+	padding-block: 0.1em;
+	border-left: none;
+	padding-left: 0;
 	font-family: "Josefin Sans", sans-serif;
-	font-size: 0.68rem;
+	font-size: clamp(0.58rem, 0.95vw, 0.7rem);
 	font-weight: 300;
-	letter-spacing: 0.3em;
+	letter-spacing: 0.08em;
+	line-height: 1.35;
 	text-transform: uppercase;
 	color: var(--muted);
+	text-align: center;
+	width: auto;
+	max-width: none;
 }
 
-.footer-list,
-.footer-socials {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.footer-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.55em;
-	font-size: clamp(0.9rem, 1.25vw, 1.05rem);
-	font-weight: 200;
-	line-height: 1.5;
-}
-
-.footer-list a,
-.footer-socials a {
-	color: var(--text);
-	text-decoration: none;
-	transition: color 0.25s ease;
-}
-
-.footer-list a:hover,
-.footer-socials a:hover {
-	color: var(--ink);
-}
-
-.footer-hours {
-	margin-top: 0.35em;
-	font-size: 0.82rem;
-	letter-spacing: 0.04em;
-	color: var(--muted);
-}
-
-.footer-socials {
+.footer-michelin-line {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: baseline;
 	justify-content: center;
-	gap: 0.35em 1.4em;
+	gap: 0.55em;
+}
+
+.footer-michelin-line span:last-child {
+	color: rgba(232, 230, 227, 0.55);
+	letter-spacing: 0.06em;
+	font-variant-numeric: tabular-nums;
+}
+
+.footer-tagline--motto {
+	flex-shrink: 0;
+	width: auto;
+	max-width: none;
+	margin-inline: auto;
+	text-align: center;
+	font-size: clamp(0.92rem, 1.35vw, 1.1rem);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity 0.4s ease;
+}
+
+html.is-footer-revealed .footer-bottom .footer-tagline--motto,
+html.is-footer-revealed .footer-bottom .footer-hours-line,
+html.is-footer-revealed .footer-legal {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+.footer-logo {
+	display: block;
+	width: clamp(48px, 6vw, 64px);
+	height: auto;
+	flex-shrink: 0;
+	color: var(--ink);
+	opacity: 0.88;
+}
+
+.footer-copy {
+	margin: 0;
 	font-family: "Josefin Sans", sans-serif;
-	font-size: 0.72rem;
+	font-size: 0.58rem;
 	font-weight: 300;
-	letter-spacing: 0.22em;
+	letter-spacing: 0.12em;
 	text-transform: uppercase;
+	color: var(--muted);
+	white-space: nowrap;
+}
+
+.footer-toggles {
+	position: absolute;
+	top: var(--inset);
+	right: var(--inset);
+	z-index: 2;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.85rem 1.15rem;
+}
+
+.anim-toggle {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55em;
+	margin: 0;
+	padding: 0;
+	font-family: "Josefin Sans", sans-serif;
+	font-size: 0.62rem;
+	font-weight: 300;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--muted);
+	opacity: 0.72;
+	cursor: pointer;
+	user-select: none;
+}
+
+.anim-toggle input {
+	appearance: none;
+	width: 0.95rem;
+	height: 0.95rem;
+	margin: 0;
+	border: 1px solid var(--edge);
+	border-radius: 3px;
+	background: transparent;
+	cursor: pointer;
+	transition: border-color 0.25s ease, background 0.25s ease;
+}
+
+.anim-toggle input:checked {
+	border-color: rgba(255, 74, 37, 0.65);
+	background: var(--ink);
+	box-shadow: inset 0 0 0 2px var(--bg);
+}
+
+.anim-toggle input:focus-visible {
+	outline: 1px solid var(--ink);
+	outline-offset: 3px;
+}
+
+.anim-toggle:hover {
+	color: var(--text);
+}
+
+/* Desktop: 2×2 — video | identity / legal | Visit+Follow. */
+@media (min-width: 900px) {
+	.screen--footer {
+		overflow: hidden;
+	}
+
+	.screen--footer .shell {
+		gap: 0;
+	}
+
+	.footer-grid {
+		/* Same equal 2×2 as `.grid` on the home screen. */
+		grid-template-columns: 1fr 1fr;
+		grid-template-rows: repeat(2, 1fr);
+		min-height: 0;
+		gap: var(--inset);
+		align-content: stretch;
+	}
+
+	/* Unwrap only the stage so video + identity fill the top row. */
+	.ftile--stage {
+		display: contents;
+	}
+
+	.ftile--video,
+	.ftile--identity,
+	.ftile--actions,
+	.ftile--bottom {
+		min-height: 0;
+		height: 100%;
+		order: 0;
+	}
+
+	.ftile--video {
+		grid-column: 1;
+		grid-row: 1;
+		min-height: 0;
+	}
+
+	.ftile--identity {
+		grid-column: 2;
+		grid-row: 1;
+		min-width: 0;
+		align-items: center;
+		justify-content: center;
+		padding: var(--pad);
+	}
+
+	/* Legal / motto take the old Visit cell (bottom left). */
+	.ftile--bottom {
+		grid-column: 1;
+		grid-row: 2;
+		margin-top: 0;
+		padding: var(--pad);
+		justify-content: center;
+		gap: 0.85rem;
+	}
+
+	/* Visit + Follow share the bottom-right card — one row of button groups. */
+	.ftile--actions {
+		grid-column: 2;
+		grid-row: 2;
+		display: flex;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: center;
+		gap: clamp(2.75rem, 5.5vw, 4.5rem);
+		padding: var(--pad);
+		align-self: stretch;
+	}
+
+	.ftile--actions .ftile--visit,
+	.ftile--actions .ftile--follow {
+		height: auto;
+		min-height: 0;
+		flex: 0 0 auto;
+		padding: 0;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.ftile--actions .footer-icons {
+		gap: 0.65rem 0.95rem;
+	}
+
+	.footer-identity-stack {
+		/* Centered as a unit in the cell; one shared left axis inside. */
+		align-items: flex-start;
+		gap: clamp(1.15rem, 2.4vh, 1.75rem);
+		width: fit-content;
+		max-width: 100%;
+		min-width: 0;
+		margin-inline: 0;
+		text-align: left;
+	}
+
+	.footer-lede {
+		align-items: flex-start;
+		gap: 0.9em;
+		padding-inline: 0;
+		width: fit-content;
+		max-width: 100%;
+		min-width: 0;
+		text-align: left;
+	}
+
+	.footer-lede-title {
+		white-space: nowrap;
+		text-wrap: unset;
+		text-align: left;
+		/* Equal columns are tighter than the old asymmetric copy lane. */
+		font-size: clamp(1.15rem, 2.05vw, 2.35rem);
+		letter-spacing: 0.03em;
+	}
+
+	.footer-lede-body {
+		text-align: left;
+		max-width: 38ch;
+	}
+
+	.footer-michelin {
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: flex-start;
+		gap: 0.65rem;
+		padding-inline: 0;
+		width: auto;
+		max-width: 100%;
+		/* Optical: badge ring sits inside the img box vs. text ink edge. */
+		margin-left: -6px;
+	}
+
+	.footer-badges {
+		justify-content: flex-start;
+		flex-shrink: 0;
+	}
+
+	.footer-tagline--michelin {
+		margin: 0;
+		border-left: none;
+		padding-left: 0;
+		align-items: flex-start;
+		text-align: left;
+		flex-shrink: 1;
+		min-width: 0;
+	}
+
+	.footer-michelin-line {
+		justify-content: flex-start;
+		flex-wrap: nowrap;
+		white-space: nowrap;
+	}
+
+	.footer-heading {
+		font-size: 0.68rem;
+		letter-spacing: 0.3em;
+		text-indent: 0.3em;
+	}
+
+	.ftile--visit .footer-block,
+	.ftile--follow .footer-block {
+		width: auto;
+		gap: 0.65em;
+	}
+
+	.ftile--visit .footer-icon-link,
+	.ftile--follow .footer-icon-link {
+		width: 2.7rem;
+		height: 2.7rem;
+	}
+
+	.ftile--visit .footer-icon,
+	.ftile--follow .footer-icon {
+		width: 1.2rem;
+		height: 1.2rem;
+	}
+
+	.ftile--visit .footer-icon--brand,
+	.ftile--follow .footer-icon--brand {
+		width: 1.1rem;
+		height: 1.1rem;
+	}
+
+	.ftile--bottom .footer-hours-line {
+		font-size: clamp(0.72rem, 0.95vw, 0.85rem);
+		white-space: nowrap;
+	}
+
+	.footer-bottom {
+		gap: 0.5rem;
+	}
+
+	.footer-bottom-stack {
+		gap: 0.25rem;
+	}
+
+	.footer-legal {
+		padding: 0;
+		flex-direction: row;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: center;
+		gap: clamp(0.45rem, 0.9vw, 0.7rem);
+	}
+
+	.ftile--bottom .footer-copy {
+		white-space: nowrap;
+		text-align: left;
+		max-width: none;
+	}
+
+	.footer-logo {
+		width: clamp(56px, 5vw, 72px);
+	}
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1106,5 +2671,9 @@ html.js .tile--media.is-media-in::after {
 
 	html:not([data-motion="full"]) .scroll-cue.is-mouse .scroll-cue-svg--mouse {
 		animation: none;
+	}
+
+	html:not([data-motion="full"]) .footer-video {
+		display: none;
 	}
 }

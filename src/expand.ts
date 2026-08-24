@@ -1,14 +1,20 @@
 /**
- * Click a card to blow it up to full bleed; Escape, the X, or the backdrop
- * puts it back.
+ * Gallery card expand / collapse.
  *
- * The card is measured inside the grid, then moved to <body> before it goes
- * fixed — `.grid` has a `perspective`, which would otherwise make it the
- * containing block for fixed children and throw the coordinates off.
+ * The tile is measured in the grid, then reparented to <body> before going
+ * fixed — `.grid` has `perspective`, which would otherwise become the
+ * containing block for `position: fixed` and throw coordinates off.
+ *
+ * Open: hero/sheet layout (and hero-band photo) from frame one — one motion
+ * into the final state, no second background beat after travel.
+ *
+ * Close (mobile): hide the sheet and pin the photo to `inset: 0` immediately,
+ * then shrink only the box. Never animate media height to `%` while the
+ * parent is also shrinking — that was the mid-close clash / flash.
  */
 
-const OPEN_MS = 560
-const CLOSE_MS = 420
+const OPEN_MS = 580
+const CLOSE_MS = 480
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 
 interface Box {
@@ -28,9 +34,11 @@ interface OpenCard {
 }
 
 /** Rows that fade up as the guest scrolls the sheet. */
-const REVEAL_SELECTOR = '.menu-head, .menu-heading, .dish, .menu-note'
+const REVEAL_SELECTOR =
+	'.menu-head, .menu-heading, .dish, .menu-note, .allergen, .sheet-head, .sheet-lead, .sheet-block'
 
 const root = document.documentElement
+const mobileQuery = () => matchMedia('(max-width: 899px)')
 
 let backdrop: HTMLElement | null = null
 let card: OpenCard | null = null
@@ -78,21 +86,48 @@ const frame = (box: Box) => ({
 	height: `${box.height}px`,
 })
 
-/** Sets the resting styles first, then plays the animation from `from`. */
+/** Sets the resting box first, then plays the animation from `from`. */
 function travel(el: HTMLElement, from: Box, to: Box, duration: number) {
 	place(el, to)
 	if (reduced()) return null
 	return el.animate([frame(from), frame(to)], { duration, easing: EASE })
 }
 
+function waitAnim(anim: Animation | null) {
+	if (!anim) return Promise.resolve()
+	return anim.finished.catch(() => {
+		/* cancelled — caller decides what to do */
+	})
+}
+
 function getBackdrop() {
 	if (!backdrop) {
 		backdrop = document.createElement('div')
 		backdrop.className = 'card-backdrop'
-		backdrop.addEventListener('click', closeCard)
+		backdrop.addEventListener('click', () => {
+			void closeCard()
+		})
 		document.body.appendChild(backdrop)
 	}
 	return backdrop
+}
+
+/** Backdrop opacity on the same clock as card travel (not a separate CSS fade). */
+function fadeBackdrop(show: boolean, duration: number) {
+	const el = getBackdrop()
+	el.classList.toggle('is-on', show)
+	if (reduced()) {
+		el.style.opacity = show ? '1' : '0'
+		return null
+	}
+	const to = show ? 1 : 0
+	const from = Number.parseFloat(getComputedStyle(el).opacity)
+	const start = Number.isFinite(from) ? from : show ? 0 : 1
+	return el.animate([{ opacity: start }, { opacity: to }], {
+		duration,
+		easing: EASE,
+		fill: 'forwards',
+	})
 }
 
 function makeClose() {
@@ -104,26 +139,60 @@ function makeClose() {
 		'<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2 14 14M14 2 2 14" /></svg>'
 	button.addEventListener('click', (event) => {
 		event.stopPropagation()
-		closeCard()
+		void closeCard()
 	})
 	return button
 }
 
+function fade(el: HTMLElement, to: number, duration: number) {
+	if (reduced()) {
+		el.style.opacity = String(to)
+		return null
+	}
+	const from = Number.parseFloat(getComputedStyle(el).opacity) || (to > 0 ? 0 : 1)
+	return el.animate([{ opacity: from }, { opacity: to }], {
+		duration,
+		easing: EASE,
+		fill: 'forwards',
+	})
+}
+
 /**
- * Wires up the long-form content an expanded card scrolls through: the hint
- * fades on first scroll, and rows fade up as they enter the card.
+ * Scroll root for reveals: mobile sheets scroll inside `.card-more`;
+ * desktop scrolls the whole `.tile-body`.
+ */
+function scrollRoot(tile: HTMLElement) {
+	const body = tile.querySelector<HTMLElement>('.tile-body')
+	if (!body) return null
+	const sheet = tile.querySelector<HTMLElement>('.card-more')
+	if (mobileQuery().matches && sheet) return sheet
+	return body
+}
+
+/**
+ * Wires long-form scroll: hint fades on first scroll; rows fade up as they
+ * enter the scrollport. Returns a teardown that resets scroll + reveals.
  */
 function watchScroll(tile: HTMLElement) {
-	const body = tile.querySelector<HTMLElement>('.tile-body')
-	const rows = [...tile.querySelectorAll<HTMLElement>(REVEAL_SELECTOR)]
-	if (!body || !rows.length) return () => {}
+	const scroller = scrollRoot(tile)
+	if (!scroller) return () => {}
 
 	const onScroll = () => {
-		tile.classList.toggle('is-scrolled', body.scrollTop > 24)
+		tile.classList.toggle('is-scrolled', scroller.scrollTop > 24)
 	}
-	body.addEventListener('scroll', onScroll, { passive: true })
+	scroller.addEventListener('scroll', onScroll, { passive: true })
 
-	if (reduced()) return () => body.removeEventListener('scroll', onScroll)
+	const rows = [...tile.querySelectorAll<HTMLElement>(REVEAL_SELECTOR)]
+
+	const cleanupScroll = () => {
+		scroller.scrollTop = 0
+		scroller.removeEventListener('scroll', onScroll)
+		tile.classList.remove('is-scrolled')
+	}
+
+	if (!rows.length || reduced()) {
+		return cleanupScroll
+	}
 
 	for (const row of rows) row.classList.add('reveal')
 
@@ -136,18 +205,16 @@ function watchScroll(tile: HTMLElement) {
 				row.classList.add('is-in-view')
 			}
 		},
-		{ root: body, rootMargin: '0px 0px -8% 0px' },
+		{ root: scroller, rootMargin: '0px 0px -8% 0px' },
 	)
 
 	rows.forEach((row, index) => {
-		// Rows arrive in clusters, so the stagger restarts every few of them.
 		row.style.transitionDelay = `${(index % 5) * 55}ms`
 		seen.observe(row)
 	})
 
 	return () => {
-		body.scrollTop = 0
-		body.removeEventListener('scroll', onScroll)
+		cleanupScroll()
 		seen.disconnect()
 		for (const row of rows) {
 			row.classList.remove('reveal', 'is-in-view')
@@ -156,7 +223,18 @@ function watchScroll(tile: HTMLElement) {
 	}
 }
 
-function openCard(tile: HTMLElement) {
+/**
+ * Pin mobile interior to the grid-card look before the box moves.
+ * Sheet is removed from layout; photo fills the tile via `inset: 0` so it
+ * tracks the shrinking parent without a competing height animation.
+ */
+function pinMobileToGrid(tile: HTMLElement) {
+	const sheet = tile.querySelector<HTMLElement>('.card-more')
+	if (sheet) sheet.scrollTop = 0
+	tile.classList.add('is-closing')
+}
+
+async function openCard(tile: HTMLElement) {
 	if (card || closing) return
 
 	const from = boxOf(tile)
@@ -166,54 +244,75 @@ function openCard(tile: HTMLElement) {
 	slot.setAttribute('aria-hidden', 'true')
 	slot.setAttribute('style', tile.getAttribute('style') ?? '')
 	tile.parentElement?.insertBefore(slot, tile)
-
-	tile.classList.add('is-open', 'is-full')
-	tile.setAttribute('aria-expanded', 'true')
-	root.classList.add('is-card-open')
 	document.body.appendChild(tile)
 
-	const close = makeClose()
-	tile.appendChild(close)
-	getBackdrop().classList.add('is-on')
+	/*
+	  Final hero/sheet layout (and hero-band photo) from frame one — the
+	  lift grows straight into the open state, no second background beat.
+	*/
+	tile.classList.add('is-open', 'is-full', 'is-sheet-on', 'is-traveling')
+	tile.setAttribute('aria-expanded', 'true')
+	root.classList.add('is-card-open')
+	place(tile, from)
 
-	const anim = travel(tile, from, stageBox(), OPEN_MS)
+	const close = makeClose()
+	close.style.opacity = '0'
+	tile.appendChild(close)
+
+	const lift = travel(tile, from, stageBox(), OPEN_MS)
+	fadeBackdrop(true, OPEN_MS)
+	fade(close, 1, Math.min(280, OPEN_MS * 0.5))
 
 	card = {
 		tile,
 		slot,
 		close,
 		restoreFocus: document.activeElement as HTMLElement | null,
-		anim,
+		anim: lift,
 		teardown: watchScroll(tile),
 	}
 	close.focus({ preventScroll: true })
+
+	await waitAnim(lift)
+	if (!card || card.tile !== tile) return
+	tile.classList.remove('is-traveling')
 }
 
-function closeCard() {
+async function closeCard() {
 	if (!card || closing) return
 
 	const { tile, slot, close, restoreFocus, teardown } = card
-	// Measured before cancelling, so an interrupted open reverses from where
-	// the card actually is rather than from its resting box.
-	const from = boxOf(tile)
 	card.anim?.cancel()
 	card = null
 	closing = true
-	teardown()
 
+	const from = boxOf(tile)
 	const to = boxOf(slot)
+	const mobile = mobileQuery().matches
 
-	// Drop the expanded typography now so the copy reflows during the shrink.
-	tile.classList.remove('is-full')
-	getBackdrop().classList.remove('is-on')
-	close.animate([{ opacity: 1 }, { opacity: 0 }], {
-		duration: 140,
-		fill: 'forwards',
-	})
+	/*
+	  Interior first (same frame as shrink start): grid photo + no sheet.
+	  Then only the box travels. Teardown already matches the grid card.
+	*/
+	tile.classList.add('is-traveling')
+	if (mobile) pinMobileToGrid(tile)
+
+	fade(close, 0, Math.min(220, CLOSE_MS * 0.45))
+	fadeBackdrop(false, CLOSE_MS)
 
 	const settle = () => {
+		teardown()
 		close.remove()
-		tile.classList.remove('is-open', 'is-scrolled')
+		close.style.opacity = ''
+		getBackdrop().style.opacity = ''
+		tile.classList.remove(
+			'is-open',
+			'is-full',
+			'is-traveling',
+			'is-closing',
+			'is-scrolled',
+			'is-sheet-on',
+		)
 		tile.setAttribute('aria-expanded', 'false')
 		tile.style.top = ''
 		tile.style.left = ''
@@ -226,12 +325,13 @@ function closeCard() {
 		closing = false
 	}
 
-	const anim = travel(tile, from, to, CLOSE_MS)
-	if (!anim) {
+	const shrink = travel(tile, from, to, CLOSE_MS)
+	if (!shrink) {
 		settle()
 		return
 	}
-	anim.finished.then(settle).catch(settle)
+	await waitAnim(shrink)
+	settle()
 }
 
 /** Cards only become interactive once the intro has revealed them. */
@@ -253,7 +353,7 @@ export function enableCardExpand() {
 		const tile = (event.target as HTMLElement).closest<HTMLElement>(
 			'.tile:not(.tile--logo)',
 		)
-		if (tile && isReady(tile)) openCard(tile)
+		if (tile && isReady(tile)) void openCard(tile)
 	})
 
 	grid.addEventListener('keydown', (event) => {
@@ -263,16 +363,15 @@ export function enableCardExpand() {
 		)
 		if (!tile || !isReady(tile)) return
 		event.preventDefault()
-		openCard(tile)
+		void openCard(tile)
 	})
 
 	document.addEventListener('keydown', (event) => {
-		if (event.key === 'Escape') closeCard()
+		if (event.key === 'Escape') void closeCard()
 	})
 
-	// An expanded card is pinned to the shell, so follow the viewport.
 	addEventListener('resize', () => {
-		if (!card) return
+		if (!card || closing) return
 		card.anim?.cancel()
 		place(card.tile, stageBox())
 	})
