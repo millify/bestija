@@ -42,12 +42,13 @@ body {
 	-webkit-font-smoothing: antialiased;
 }
 
-/* Two full-viewport screens; transform flips between them as a binary step. */
+/* Full-viewport screens; track height grows on mobile (3 pages). */
 .pager {
 	height: 100svh;
 	overflow: hidden;
 	overscroll-behavior: none;
 	touch-action: none;
+	position: relative;
 }
 
 .pager-track {
@@ -59,6 +60,10 @@ body {
 
 html[data-page="1"] .pager-track {
 	transform: translate3d(0, -100svh, 0);
+}
+
+html[data-page="2"] .pager-track {
+	transform: translate3d(0, -200svh, 0);
 }
 
 .screen {
@@ -86,14 +91,16 @@ html[data-page="1"] .pager-track {
 }
 
 .scroll-cue {
-	position: absolute;
+	/* Direct child of body — fixed to the true viewport (not inside
+	   .pager-track transform or .pager overflow clip). */
+	position: fixed;
 	left: 50%;
-	bottom: 0.15rem;
-	z-index: 5;
+	bottom: max(0.25rem, env(safe-area-inset-bottom, 0px));
+	z-index: 40;
 	display: grid;
 	place-items: center;
-	width: 2.1rem;
-	height: 2.1rem;
+	width: 2.4rem;
+	height: 2.4rem;
 	padding: 0;
 	border: 0;
 	background: transparent;
@@ -105,8 +112,8 @@ html[data-page="1"] .pager-track {
 	transition: opacity 0.45s ease, color 0.25s ease, filter 0.35s ease;
 }
 
-/* Armed only after the last card decode settles (see scroll-cue.ts). */
-html.intro-done:not([data-page="1"]):not(.is-card-open) .scroll-cue.is-live {
+/* Armed after intro; hidden on the last screen (desktop footer / mobile end). */
+html.intro-done:not(.is-on-footer):not(.is-card-open) .scroll-cue.is-live {
 	opacity: 1;
 	pointer-events: auto;
 }
@@ -119,7 +126,8 @@ html.intro-done:not([data-page="1"]):not(.is-card-open) .scroll-cue.is-live {
 	filter: drop-shadow(0 0 8px rgba(255, 74, 37, 0.55));
 }
 
-.scroll-cue.is-settled {
+/* Nudge the glyph, not the button — keeps translateX(-50%) centering intact. */
+.scroll-cue.is-settled .scroll-cue-svg--chevron {
 	animation: cue-nudge 1.8s ease-in-out infinite;
 }
 
@@ -167,10 +175,10 @@ html.intro-done:not([data-page="1"]):not(.is-card-open) .scroll-cue.is-live {
 @keyframes cue-nudge {
 	0%,
 	100% {
-		transform: translateX(-50%) translateY(0);
+		transform: translateY(0);
 	}
 	50% {
-		transform: translateX(-50%) translateY(3px);
+		transform: translateY(3px);
 	}
 }
 
@@ -265,14 +273,38 @@ html.js .tile:not(.tile--logo).is-tile-in {
 
 	.tile--menu .tile-media {
 		background-position: center 42%;
+		/* Little copy — let the photo read. */
+		filter: saturate(0.94) contrast(1.04) brightness(0.94)
+			blur(var(--media-blur, 0px));
 	}
 
 	.tile--story .tile-media {
 		background-position: center 28%;
+		filter: saturate(0.92) contrast(1.05) brightness(0.9)
+			blur(var(--media-blur, 0px));
 	}
 
 	.tile--reservations .tile-media {
 		background-position: 40% center;
+		filter: saturate(0.94) contrast(1.04) brightness(0.94)
+			blur(var(--media-blur, 0px));
+	}
+
+	/*
+	  Shared mobile veil: a touch darker at the bottom for title contrast,
+	  easing clear toward the top — not the heavy desktop wash.
+	*/
+	.tile--menu.tile--media::after,
+	.tile--story.tile--media::after,
+	.tile--reservations.tile--media::after {
+		background: linear-gradient(
+			to top,
+			rgba(6, 6, 6, 0.58) 0%,
+			rgba(6, 6, 6, 0.38) 24%,
+			rgba(6, 6, 6, 0.2) 52%,
+			rgba(6, 6, 6, 0.09) 78%,
+			rgba(6, 6, 6, 0.03) 100%
+		);
 	}
 }
 
@@ -1794,6 +1826,155 @@ input[type="date"].reserve-control {
 	}
 }
 
+.screen--mid,
+.screen--end {
+	display: none;
+}
+
+/* Mobile: 3 pager screens — home trio, story+video+hero, visit+legal. */
+@media (max-width: 899px) {
+	/* Room in the bottom gutter for the double-chevron cue. */
+	.shell {
+		padding-bottom: calc(var(--inset) + 1.55rem);
+	}
+
+	.scroll-cue {
+		bottom: max(0.4rem, env(safe-area-inset-bottom, 0px));
+		width: 2.75rem;
+		height: 2.75rem;
+	}
+
+	.scroll-cue-svg {
+		width: 1.4rem;
+		height: 1.4rem;
+	}
+
+	.pager-track {
+		height: 300svh;
+	}
+
+	.screen--grid {
+		height: 100svh;
+		min-height: 100svh;
+	}
+
+	.screen--mid,
+	.screen--end {
+		display: block;
+		height: 100svh;
+		min-height: 100svh;
+	}
+
+	/* Footer board is emptied; its cells live on mid/end. */
+	.screen--footer {
+		display: none;
+	}
+
+	.grid {
+		grid-template-columns: 1fr;
+		grid-template-rows: repeat(3, 1fr);
+	}
+
+	.mobile-stack {
+		display: grid;
+		gap: var(--inset);
+		width: 100%;
+		height: 100%;
+		min-height: 0;
+	}
+
+	.mobile-stack--mid {
+		grid-template-rows: repeat(3, minmax(0, 1fr));
+	}
+
+	.mobile-stack--end {
+		/* Visit + Follow share the space; motto/legal hugs the bottom. */
+		grid-template-rows: 1fr 1fr auto;
+		gap: var(--inset);
+	}
+
+	.mobile-stack > .tile,
+	.mobile-stack > .ftile {
+		min-height: 0;
+		height: 100%;
+	}
+
+	.mobile-stack .ftile--video {
+		border-radius: var(--radius-tile);
+	}
+
+	.mobile-stack .ftile--identity {
+		padding: var(--pad);
+	}
+
+	.mobile-stack--end > .ftile--visit,
+	.mobile-stack--end > .ftile--follow,
+	.mobile-stack--end > .ftile--bottom {
+		height: 100%;
+		min-height: 0;
+		justify-content: center;
+		padding: var(--pad);
+		box-sizing: border-box;
+	}
+
+	/* Clear Animation/Video toggles in the top third. */
+	.mobile-stack--end > .ftile--visit {
+		padding-top: 2.35rem;
+	}
+
+	/*
+	  Title → icons spacing must beat later `.footer-block .footer-heading { margin: 0 }`
+	  and the shared block gap. Use the flex gap on the block itself.
+	*/
+	.mobile-stack--end .footer-block--visit,
+	.mobile-stack--end .footer-block--follow {
+		gap: 1.75rem;
+	}
+
+	.mobile-stack--end .footer-block .footer-heading {
+		margin: 0;
+	}
+
+	/* Unfold links into a column with room between each button. */
+	.mobile-stack--end .footer-icons {
+		flex-direction: column;
+		flex-wrap: nowrap;
+		gap: 1.15rem;
+	}
+
+	.mobile-stack--end > .ftile--bottom {
+		height: auto;
+		align-self: end;
+		justify-content: flex-end;
+		gap: 0.55rem;
+		padding-top: 0.35rem;
+		padding-bottom: 0.15rem;
+	}
+
+	/* Last screen has no scroll cue — drop the extra gutter. */
+	#end .shell {
+		padding-bottom: max(var(--inset), env(safe-area-inset-bottom, 0px));
+	}
+
+	#end {
+		position: relative;
+	}
+
+	#end .footer-toggles {
+		position: absolute;
+		top: 0.65rem;
+		right: 0.75rem;
+		z-index: 6;
+	}
+}
+
+@media (min-width: 900px) {
+	.screen--mid,
+	.screen--end {
+		display: none;
+	}
+}
+
 /* --- Footer screen --- */
 
 .screen--footer {
@@ -2679,10 +2860,7 @@ html.is-footer-revealed .footer-legal {
 		transition: none;
 	}
 
-	html:not([data-motion="full"]) .scroll-cue {
-		animation: none;
-	}
-
+	html:not([data-motion="full"]) .scroll-cue.is-settled .scroll-cue-svg--chevron,
 	html:not([data-motion="full"]) .scroll-cue.is-mouse .scroll-cue-svg--mouse {
 		animation: none;
 	}

@@ -1,14 +1,18 @@
 /**
- * Binary page flip: gallery (0) or footer (1). Free page scrolling is disabled —
- * a wheel / swipe / key only steps between the two full-viewport screens.
+ * Page flip between full-viewport screens. Free scrolling is disabled —
+ * wheel / swipe / key only steps one screen at a time.
  *
- * When a card is expanded (`is-card-open`), paging stands down so the card can
- * scroll normally inside its own body.
+ * Mobile: home trio → story/video/hero → visit / follow / legal.
+ * Desktop: gallery (2×2) → footer.
+ *
+ * When a card is expanded (`is-card-open`) or a screen intro is playing,
+ * paging stands down.
  */
 
 const WHEEL_THRESHOLD = 40
 const SWIPE_THRESHOLD = 56
 const COOLDOWN_MS = 780
+const MOBILE_MQ = '(max-width: 899px)'
 
 const root = document.documentElement
 const reduced = () => root.dataset.motion === 'reduce'
@@ -20,19 +24,35 @@ let touchY = 0
 
 const cardOpen = () => root.classList.contains('is-card-open')
 const introBusy = () => root.classList.contains('is-intro')
+const screenAnimating = () => root.classList.contains('is-screen-animating')
+const isMobile = () => window.matchMedia(MOBILE_MQ).matches
+
+/** Last page index: 2 on mobile (visit/legal), 1 on desktop (footer). */
+export function maxPage() {
+	return isMobile() ? 2 : 1
+}
+
+export function footerPage() {
+	return maxPage()
+}
 
 function canPage() {
-	return !locked && !introBusy() && !cardOpen()
+	return !locked && !introBusy() && !screenAnimating() && !cardOpen()
+}
+
+function applyPage(target: number) {
+	page = target
+	root.dataset.page = String(page)
+	root.classList.toggle('is-on-footer', page === maxPage())
 }
 
 function go(next: number) {
-	const target = next <= 0 ? 0 : 1
+	const max = maxPage()
+	const target = Math.max(0, Math.min(max, next))
 	if (target === page || !canPage()) return
 
-	page = target
 	locked = true
-	root.dataset.page = String(page)
-	root.classList.toggle('is-on-footer', page === 1)
+	applyPage(target)
 
 	const wait = reduced() ? 0 : COOLDOWN_MS
 	window.setTimeout(() => {
@@ -49,6 +69,18 @@ export function goToPage(next: number) {
 	go(next)
 }
 
+/** Remap page index when crossing the mobile/desktop breakpoint. */
+function onBreakpointChange() {
+	const onFooter = root.classList.contains('is-on-footer')
+	if (isMobile()) {
+		// Desktop gallery → mobile gallery A; desktop footer → mobile footer.
+		applyPage(onFooter ? 2 : 0)
+	} else {
+		// Mobile gallery A/B → desktop gallery; mobile footer → desktop footer.
+		applyPage(onFooter ? 1 : 0)
+	}
+}
+
 /** True when the event is aimed at the open card's scrollable content. */
 function inOpenCard(target: EventTarget | null) {
 	if (!(target instanceof Element)) return false
@@ -59,7 +91,9 @@ export function enablePager() {
 	const track = document.getElementById('pager-track')
 	if (!track) return
 
-	root.dataset.page = '0'
+	applyPage(0)
+
+	window.matchMedia(MOBILE_MQ).addEventListener('change', onBreakpointChange)
 
 	window.addEventListener(
 		'wheel',
@@ -144,7 +178,7 @@ export function enablePager() {
 					break
 				case 'End':
 					event.preventDefault()
-					go(1)
+					go(maxPage())
 					break
 				default:
 					break
@@ -162,7 +196,7 @@ export function enablePager() {
 	)
 
 	document.getElementById('scroll-cue')?.addEventListener('click', () => {
-		go(1)
+		step(1)
 	})
 }
 

@@ -47,6 +47,11 @@
         gap: var(--inset);
         height: 100%;
       }
+      @media (max-width: 899px) {
+        .pager-track {
+          height: 300svh;
+        }
+      }
       .tile {
         position: relative;
         overflow: hidden;
@@ -133,19 +138,12 @@
         // Gates the JS-sequenced reveal.
         root.classList.add('js');
 
-        // Follows the OS motion setting, but ?motion=full / ?motion=reduce
-        // pins a choice (handy when the OS has Reduce Motion switched on).
-        var choice = null;
+        // Always run full motion — ignore the client’s prefers-reduced-motion
+        // (and any stored reduce pin) so the landing reads the same on every device.
         try {
-          var asked = new URLSearchParams(location.search).get('motion');
-          if (asked) localStorage.setItem('bestija:motion', asked);
-          choice = localStorage.getItem('bestija:motion');
+          localStorage.removeItem('bestija:motion');
         } catch (e) {}
-        var reduce =
-          choice === 'reduce' ||
-          (choice !== 'full' &&
-            matchMedia('(prefers-reduced-motion: reduce)').matches);
-        root.dataset.motion = reduce ? 'reduce' : 'full';
+        root.dataset.motion = 'full';
 
         try {
           // Footer "Animation" checkbox — off means settled UI on load.
@@ -176,7 +174,7 @@
       <div class="pager-track" id="pager-track">
     <section class="screen screen--grid" id="top">
     <div class="shell" id="shell">
-      <main class="grid">
+      <main class="grid" id="home-grid">
         <article class="tile tile--logo" style="--i: 0" aria-label="beštija">
           <div class="tile-body">
             <svg
@@ -461,7 +459,7 @@
           </div>
         </article>
 
-        <article class="tile tile--media tile--story" style="--i: 2">
+        <article class="tile tile--media tile--story" style="--i: 3">
           <div class="tile-media" aria-hidden="true"></div>
           <div class="tile-body">
             <div class="tile-lead">
@@ -523,7 +521,7 @@
           </div>
         </article>
 
-        <article class="tile tile--media tile--reservations" style="--i: 3">
+        <article class="tile tile--media tile--reservations" style="--i: 2">
           <div class="tile-media" aria-hidden="true"></div>
           <div class="tile-body">
             <div class="tile-lead">
@@ -728,16 +726,22 @@
         </article>
       </main>
     </div>
-    <button
-      type="button"
-      class="scroll-cue"
-      id="scroll-cue"
-      aria-label="Scroll to footer"
-    ></button>
+    </section>
+
+    <section class="screen screen--mid" id="mid" aria-label="Story and atmosphere">
+      <div class="shell">
+        <div class="mobile-stack mobile-stack--mid" id="mid-grid"></div>
+      </div>
+    </section>
+
+    <section class="screen screen--end" id="end" aria-label="Visit and footer">
+      <div class="shell">
+        <div class="mobile-stack mobile-stack--end" id="end-grid"></div>
+      </div>
     </section>
 
     <footer class="screen screen--footer" id="footer">
-      <div class="footer-toggles">
+      <div class="footer-toggles" id="footer-toggles">
         <label class="anim-toggle" for="anim-toggle">
           <input type="checkbox" id="anim-toggle" checked />
           <span>Animation</span>
@@ -943,6 +947,15 @@
     </footer>
       </div>
     </div>
+
+    <!-- Outside #pager / .pager-track so position:fixed is viewport-true
+         (ancestors with transform/overflow clip fixed children). -->
+    <button
+      type="button"
+      class="scroll-cue"
+      id="scroll-cue"
+      aria-label="Scroll to next screen"
+    ></button>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

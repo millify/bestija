@@ -1,23 +1,18 @@
 /**
- * Footer entrance: as soon as the visitor flips to the footer screen, fade
- * in the kitchen video and matrix-decode the hero lede, then quickly bring
- * in Michelin, Visit/Follow, and the bottom bar. Plays / pauses the
- * atmosphere video with the footer screen.
+ * Atmosphere entrance: desktop footer, or mobile screen 2 (story + video + hero).
+ * On mobile, the story card matrix-decodes here — not during the first-screen intro.
  */
 
 import { decodeHosts } from './matrix'
 import { animationsEnabled, enableVideoToggle, videoEnabled } from './prefs'
+import { boardIsMobile } from './layout'
 
 const root = document.documentElement
 const reduced = () => root.dataset.motion === 'reduce'
 
-/**
- * Start the lede decode while the video is still fading in, so the two
- * read as one beat rather than waiting for the full video opacity settle.
- */
 const VIDEO_TO_LEDE_MS = 160
-/** Breath after the lede lands before Michelin / Visit / legal appear. */
 const BEFORE_REST_MS = 80
+const STORY_MEDIA_TO_TEXT_MS = 340
 
 let started = false
 let running = false
@@ -30,13 +25,18 @@ function video() {
 	return document.querySelector<HTMLVideoElement>('#footer-video')
 }
 
+/** Atmosphere screen: desktop footer, or mobile mid page (story + video + hero). */
+function onAtmosphere() {
+	if (boardIsMobile()) return root.dataset.page === '1'
+	return root.classList.contains('is-on-footer')
+}
+
 function syncVideo() {
 	const el = video()
 	if (!el) return
 
-	const onFooter = root.dataset.page === '1'
 	const videoIn = root.classList.contains('is-footer-video-on')
-	const canPlay = onFooter && videoIn && videoEnabled() && !reduced()
+	const canPlay = onAtmosphere() && videoIn && videoEnabled() && !reduced()
 
 	if (canPlay) {
 		void el.play().catch(() => {
@@ -48,6 +48,11 @@ function syncVideo() {
 }
 
 function showFinal() {
+	const story = document.querySelector<HTMLElement>('.tile--story')
+	if (story) {
+		story.classList.add('is-tile-in', 'is-media-in', 'is-text-in', 'is-in')
+		story.classList.remove('is-tile-in')
+	}
 	root.classList.add(
 		'is-footer-video-on',
 		'is-footer-brand-on',
@@ -55,6 +60,26 @@ function showFinal() {
 		'is-footer-revealed',
 	)
 	syncVideo()
+}
+
+async function revealStoryTile() {
+	const story = document.querySelector<HTMLElement>('.tile--story')
+	if (!story || story.classList.contains('is-text-in')) return
+
+	const settle = (event: AnimationEvent) => {
+		if (event.target !== story) return
+		story.removeEventListener('animationend', settle)
+		story.classList.add('is-in')
+		story.classList.remove('is-tile-in')
+	}
+	story.addEventListener('animationend', settle)
+	story.classList.add('is-tile-in', 'is-media-in')
+
+	await sleep(STORY_MEDIA_TO_TEXT_MS)
+	story.classList.add('is-text-in')
+
+	const title = story.querySelector<HTMLElement>('h2')
+	if (title) await decodeHosts([title])
 }
 
 async function decodeLede() {
@@ -73,27 +98,32 @@ async function decodeLede() {
 async function play() {
 	if (started || running) return
 	running = true
+	root.classList.add('is-screen-animating')
 
-	// 1) Kitchen video starts fading in immediately with the page flip.
+	// Mobile screen 2: story card enters + decodes first.
+	if (boardIsMobile()) {
+		await revealStoryTile()
+	}
+
+	// Kitchen video fades in; lede matrix follows.
 	root.classList.add('is-footer-video-on')
 	syncVideo()
 
-	// 2) Lede matrix picks up mid-fade — title + description together.
 	await sleep(VIDEO_TO_LEDE_MS)
 	root.classList.add('is-footer-brand-on', 'is-footer-lede-body-on')
 	await sleep(40)
 	await decodeLede()
 
-	// 3) Michelin, Visit/Follow, and bottom bar — quick follow-on.
 	await sleep(BEFORE_REST_MS)
 	root.classList.add('is-footer-revealed')
 
 	started = true
 	running = false
+	root.classList.remove('is-screen-animating')
 }
 
 async function tryStart() {
-	if (root.dataset.page !== '1') {
+	if (!onAtmosphere()) {
 		syncVideo()
 		return
 	}
@@ -108,11 +138,10 @@ async function tryStart() {
 		return
 	}
 
-	// Fire as soon as we land on the footer — no wait for the flip to finish.
 	await play()
 }
 
-/** Kick the sequence the first time the visitor lands on the footer screen. */
+/** Kick the sequence the first time the visitor lands on the atmosphere screen. */
 export function enableFooterReveal() {
 	void tryStart()
 

@@ -1,5 +1,6 @@
 import { buildScripts, type WorldScript } from './glyphs'
 import { revealScrollCue, settleScrollCue } from './scroll-cue'
+import { boardIsMobile } from './layout'
 import { animationsEnabled } from './prefs'
 
 /**
@@ -104,6 +105,17 @@ const randomOf = <T>(list: readonly T[]) =>
 	list[(Math.random() * list.length) | 0]
 
 const isVisible = (el: HTMLElement) => el.getClientRects().length > 0
+
+/** First-screen cards only on mobile; full gallery on desktop. */
+function contentTiles() {
+	const tiles = [
+		...document.querySelectorAll<HTMLElement>('.tile:not(.tile--logo)'),
+	]
+	if (boardIsMobile()) {
+		return tiles.filter((tile) => !tile.classList.contains('tile--story'))
+	}
+	return tiles
+}
 
 function revealInstantly(tile: HTMLElement) {
 	flyIn(tile)
@@ -378,9 +390,7 @@ function finishIntro() {
 }
 
 function begin() {
-	const tiles = [
-		...document.querySelectorAll<HTMLElement>('.tile:not(.tile--logo)'),
-	]
+	const tiles = contentTiles()
 
 	// Resolved before first paint by the inline head script.
 	if (root.dataset.motion === 'reduce') {
@@ -475,9 +485,7 @@ export function startIntro() {
 
 /** Jump to the settled gallery when entrance animation is turned off. */
 function skipIntro() {
-	const tiles = [
-		...document.querySelectorAll<HTMLElement>('.tile:not(.tile--logo)'),
-	]
+	const tiles = contentTiles()
 	for (const tile of tiles) {
 		revealInstantly(tile)
 		tile.classList.add('is-in')
