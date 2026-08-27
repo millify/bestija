@@ -166,10 +166,14 @@ function pickWorldScript(
 /**
  * Decodes one or more text hosts with the same matrix effect as the intro.
  * Resolves when every unit has settled and original HTML is restored.
+ * Pass an `AbortSignal` to cancel early (HTML restored immediately).
  */
-export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
+export function decodeHosts(
+	hostsList: HTMLElement[],
+	signal?: AbortSignal,
+): Promise<void> {
 	return new Promise((resolve) => {
-		if (!hostsList.length) {
+		if (!hostsList.length || signal?.aborted) {
 			resolve()
 			return
 		}
@@ -183,6 +187,8 @@ export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
 		const units: Unit[] = []
 		const marks: Mark[] = []
 		const hosts = new Map<HTMLElement, HostState>()
+		/** Original markup for every host — used on settle and on abort. */
+		const originals = new Map<HTMLElement, string>()
 		const t0 = performance.now()
 
 		const sample = hostsList[0]
@@ -191,6 +197,7 @@ export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
 
 		for (const host of hostsList) {
 			const html = host.innerHTML
+			originals.set(host, html)
 			const words = splitHost(host)
 			if (!words.length) continue
 			hosts.set(host, { html, pending: 0 })
@@ -272,12 +279,26 @@ export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
 		}
 
 		let settled = false
+		const restoreAll = () => {
+			for (const [host, html] of originals) host.innerHTML = html
+		}
+
 		const maybeDone = () => {
 			if (settled) return
 			if (units.some((u) => !u.done) || marks.length) return
 			settled = true
 			resolve()
 		}
+
+		const abort = () => {
+			if (settled) return
+			settled = true
+			marks.length = 0
+			restoreAll()
+			resolve()
+		}
+
+		signal?.addEventListener('abort', abort, { once: true })
 
 		const finish = (unit: Unit, at: number) => {
 			unit.done = true
@@ -364,6 +385,7 @@ export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
 		}
 
 		const tick = (now: number) => {
+			if (settled) return
 			const t = now - t0
 			while (marks.length && marks[0].at <= t) marks.shift()?.run()
 
@@ -375,6 +397,7 @@ export function decodeHosts(hostsList: HTMLElement[]): Promise<void> {
 				else stepChar(unit, t)
 			}
 
+			if (settled) return
 			if (pending || marks.length) requestAnimationFrame(tick)
 			else maybeDone()
 		}

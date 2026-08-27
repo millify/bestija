@@ -1,4 +1,4 @@
-type Step = 'slot' | 'details' | 'done'
+type Step = 'slot' | 'confirm' | 'details' | 'done'
 
 type State = {
 	party: number
@@ -78,14 +78,6 @@ function buildSlots() {
 	return slots
 }
 
-function showStep(root: HTMLElement, step: Step) {
-	for (const el of root.querySelectorAll<HTMLElement>('[data-reserve-step]')) {
-		const active = el.dataset.reserveStep === step
-		el.hidden = !active
-		el.classList.toggle('is-active', active)
-	}
-}
-
 function summaryLine(state: State) {
 	if (!state.time) return ''
 	const start = parseTimeLabel(state.time)
@@ -93,40 +85,51 @@ function summaryLine(state: State) {
 	return `${partyLabel(state.party)}, ${formatLongDate(state.date)}, ${state.time} – ${end}`
 }
 
+function confirmCopy(state: State) {
+	const when = formatLongDate(state.date)
+	const who = partyLabel(state.party)
+	if (state.date === state.earliest) {
+		return `Your reservation for ${who} will be scheduled for ${when}. It’s the earliest available date.`
+	}
+	return `Your reservation for ${who} will be scheduled for ${when}${state.time ? ` at ${state.time}` : ''}.`
+}
+
 export function enableReservations() {
 	const root = document.querySelector<HTMLElement>('[data-reserve-root]')
 	if (!root) return
 
+	const pickRow = root.querySelector<HTMLElement>('[data-reserve-pick]')
 	const partyEl = root.querySelector<HTMLSelectElement>('[data-reserve-party]')
 	const dateEl = root.querySelector<HTMLInputElement>('[data-reserve-date]')
 	const timesEl = root.querySelector<HTMLElement>('[data-reserve-times]')
+	const actionsEl = root.querySelector<HTMLElement>('[data-reserve-actions]')
 	const nextBtn = root.querySelector<HTMLButtonElement>('[data-reserve-next]')
+	const confirmCancelBtn = root.querySelector<HTMLButtonElement>(
+		'[data-reserve-confirm-cancel]',
+	)
+	const confirmOkBtn = root.querySelector<HTMLButtonElement>('[data-reserve-confirm-ok]')
 	const backBtn = root.querySelector<HTMLButtonElement>('[data-reserve-back]')
+	const submitBtn = root.querySelector<HTMLButtonElement>('[data-reserve-submit]')
 	const resetBtn = root.querySelector<HTMLButtonElement>('[data-reserve-reset]')
 	const form = root.querySelector<HTMLFormElement>('[data-reserve-form]')
 	const summaryEl = root.querySelector<HTMLElement>('[data-reserve-summary]')
-	const doneSummaryEl = root.querySelector<HTMLElement>('[data-reserve-done-summary]')
-	const dialog = root.querySelector<HTMLElement>('[data-reserve-dialog]')
-	const dialogCopy = root.querySelector<HTMLElement>('[data-reserve-dialog-copy]')
-	const dialogOk = root.querySelector<HTMLButtonElement>('[data-reserve-dialog-ok]')
-	const dialogCancel = root.querySelector<HTMLButtonElement>(
-		'[data-reserve-dialog-cancel]',
-	)
+	const confirmCopyEl = root.querySelector<HTMLElement>('[data-reserve-confirm-copy]')
 
 	if (
+		!pickRow ||
 		!partyEl ||
 		!dateEl ||
 		!timesEl ||
+		!actionsEl ||
 		!nextBtn ||
+		!confirmCancelBtn ||
+		!confirmOkBtn ||
 		!backBtn ||
+		!submitBtn ||
 		!resetBtn ||
 		!form ||
 		!summaryEl ||
-		!doneSummaryEl ||
-		!dialog ||
-		!dialogCopy ||
-		!dialogOk ||
-		!dialogCancel
+		!confirmCopyEl
 	) {
 		return
 	}
@@ -137,6 +140,34 @@ export function enableReservations() {
 		time: null,
 		earliest: earliestOpenDate(),
 	}
+
+	const partyShell = root.querySelector<HTMLElement>('[data-reserve-party-shell]')
+	const dateShell = root.querySelector<HTMLElement>('[data-reserve-date-shell]')
+
+	const openPicker = (el: HTMLSelectElement | HTMLInputElement) => {
+		el.focus({ preventScroll: true })
+		const picker = el as HTMLSelectElement & { showPicker?: () => void }
+		try {
+			picker.showPicker?.()
+		} catch {
+			/* showPicker can throw if not triggered by user gesture in some engines */
+		}
+	}
+
+	partyShell?.addEventListener('pointerdown', (event) => {
+		if (event.target === partyEl) return
+		event.preventDefault()
+		openPicker(partyEl)
+	})
+
+	dateShell?.addEventListener('pointerdown', (event) => {
+		if (event.target === dateEl) return
+		event.preventDefault()
+		openPicker(dateEl)
+	})
+
+	partyEl.addEventListener('click', () => openPicker(partyEl))
+	dateEl.addEventListener('click', () => openPicker(dateEl))
 
 	dateEl.min = state.earliest
 	dateEl.value = state.date
@@ -151,6 +182,86 @@ export function enableReservations() {
 			return opt
 		}),
 	)
+
+	const timesShell = timesEl.closest<HTMLElement>('.reserve-times-shell')
+	const timesRail = root.querySelector<HTMLElement>('[data-reserve-times-rail]')
+	const timesThumb = root.querySelector<HTMLElement>('[data-reserve-times-thumb]')
+
+	const syncTimesScroll = () => {
+		if (!timesShell || !timesRail || !timesThumb) return
+		const view = timesEl.clientHeight
+		const full = timesEl.scrollHeight
+		const overflow = full > view + 1
+		timesShell.classList.toggle('is-scrollable', overflow)
+		if (!overflow) {
+			timesThumb.style.height = '100%'
+			timesThumb.style.transform = 'translateY(0)'
+			return
+		}
+		const railH = timesRail.clientHeight
+		const thumbH = Math.max(28, (view / full) * railH)
+		const maxTop = Math.max(0, railH - thumbH)
+		const maxScroll = Math.max(1, full - view)
+		const top = (timesEl.scrollTop / maxScroll) * maxTop
+		timesThumb.style.height = `${thumbH}px`
+		timesThumb.style.transform = `translateY(${top}px)`
+	}
+
+	timesEl.addEventListener('scroll', syncTimesScroll, { passive: true })
+	addEventListener('resize', syncTimesScroll)
+	if (typeof ResizeObserver !== 'undefined') {
+		new ResizeObserver(syncTimesScroll).observe(timesEl)
+	}
+
+	if (timesRail && timesThumb) {
+		let dragging = false
+		let dragOffset = 0
+
+		const scrollFromPointer = (clientY: number) => {
+			const railH = timesRail.clientHeight
+			const thumbH = timesThumb.offsetHeight
+			const maxTop = Math.max(0, railH - thumbH)
+			const rect = timesRail.getBoundingClientRect()
+			const y = Math.min(
+				maxTop,
+				Math.max(0, clientY - rect.top - dragOffset),
+			)
+			const maxScroll = Math.max(1, timesEl.scrollHeight - timesEl.clientHeight)
+			timesEl.scrollTop = maxTop > 0 ? (y / maxTop) * maxScroll : 0
+		}
+
+		timesRail.addEventListener('pointerdown', (event) => {
+			if (!timesShell?.classList.contains('is-scrollable')) return
+			event.preventDefault()
+			const thumbRect = timesThumb.getBoundingClientRect()
+			const onThumb =
+				event.target === timesThumb || timesThumb.contains(event.target as Node)
+			dragOffset = onThumb ? event.clientY - thumbRect.top : timesThumb.offsetHeight / 2
+			dragging = true
+			timesThumb.classList.add('is-dragging')
+			timesRail.setPointerCapture(event.pointerId)
+			scrollFromPointer(event.clientY)
+		})
+
+		timesRail.addEventListener('pointermove', (event) => {
+			if (!dragging) return
+			scrollFromPointer(event.clientY)
+		})
+
+		const endDrag = (event: PointerEvent) => {
+			if (!dragging) return
+			dragging = false
+			timesThumb.classList.remove('is-dragging')
+			try {
+				timesRail.releasePointerCapture(event.pointerId)
+			} catch {
+				/* already released */
+			}
+		}
+
+		timesRail.addEventListener('pointerup', endDrag)
+		timesRail.addEventListener('pointercancel', endDrag)
+	}
 
 	const slots = buildSlots()
 	timesEl.replaceChildren(
@@ -171,30 +282,62 @@ export function enableReservations() {
 					)
 				}
 				nextBtn.disabled = false
+				nextBtn.classList.add('is-ready')
 			})
 			return btn
 		}),
 	)
 
+	requestAnimationFrame(syncTimesScroll)
+
 	const syncSummary = () => {
-		const line = summaryLine(state)
-		summaryEl.textContent = line
-		doneSummaryEl.textContent = line
+		summaryEl.textContent = summaryLine(state)
 	}
 
-	const goDetails = () => {
-		syncSummary()
-		showStep(root, 'details')
+	const setPickEnabled = (enabled: boolean) => {
+		partyEl.disabled = !enabled
+		dateEl.disabled = !enabled
+		pickRow.classList.toggle('is-locked', !enabled)
 	}
 
-	const openDialog = () => {
-		dialogCopy.textContent = `Your reservation will be scheduled for ${formatLongDate(state.date)}. It’s the earliest available date.`
-		dialog.hidden = false
-		dialogOk.focus()
+	const showActions = (step: Step) => {
+		actionsEl.dataset.actions = step
+		nextBtn.hidden = step !== 'slot'
+		confirmCancelBtn.hidden = step !== 'confirm'
+		confirmOkBtn.hidden = step !== 'confirm'
+		backBtn.hidden = step !== 'details'
+		submitBtn.hidden = step !== 'details'
+		resetBtn.hidden = step !== 'done'
 	}
 
-	const closeDialog = () => {
-		dialog.hidden = true
+	const showStep = (step: Step) => {
+		for (const el of root.querySelectorAll<HTMLElement>('[data-reserve-step]')) {
+			const active = el.dataset.reserveStep === step
+			el.hidden = !active
+			el.classList.toggle('is-active', active)
+		}
+
+		const showPick = step === 'slot'
+		pickRow.hidden = !showPick
+		summaryEl.hidden = !(step === 'details' || step === 'done')
+		setPickEnabled(step === 'slot')
+		showActions(step)
+		root.dataset.reservePhase = step
+
+		if (step === 'slot') requestAnimationFrame(syncTimesScroll)
+		if (step === 'confirm') {
+			confirmCopyEl.textContent = confirmCopy(state)
+			confirmOkBtn.focus()
+		}
+		if (step === 'details') {
+			syncSummary()
+			form.querySelector<HTMLInputElement>('input[name="firstName"]')?.focus()
+		}
+		if (step === 'done') syncSummary()
+	}
+
+	const goConfirm = () => {
+		showStep('confirm')
 	}
 
 	partyEl.addEventListener('change', () => {
@@ -217,28 +360,25 @@ export function enableReservations() {
 		if (!state.time) return
 		state.party = Number(partyEl.value) || 2
 		state.date = dateEl.value || state.earliest
-		if (state.date === state.earliest) {
-			openDialog()
-			return
-		}
-		goDetails()
+		goConfirm()
 	})
 
-	dialogCancel.addEventListener('click', () => closeDialog())
-	dialogOk.addEventListener('click', () => {
-		closeDialog()
-		goDetails()
+	confirmCancelBtn.addEventListener('click', () => {
+		showStep('slot')
+	})
+
+	confirmOkBtn.addEventListener('click', () => {
+		showStep('details')
 	})
 
 	backBtn.addEventListener('click', () => {
-		showStep(root, 'slot')
+		showStep('confirm')
 	})
 
 	form.addEventListener('submit', (event) => {
 		event.preventDefault()
-		if (!form.reportValidity()) return
 		syncSummary()
-		showStep(root, 'done')
+		showStep('done')
 	})
 
 	resetBtn.addEventListener('click', () => {
@@ -253,7 +393,8 @@ export function enableReservations() {
 			btn.setAttribute('aria-selected', 'false')
 		}
 		nextBtn.disabled = true
-		showStep(root, 'slot')
+		nextBtn.classList.remove('is-ready')
+		showStep('slot')
 	})
 
 	for (const link of root.querySelectorAll<HTMLAnchorElement>('[data-reserve-link]')) {
@@ -263,4 +404,6 @@ export function enableReservations() {
 	// Keep card expand from treating form keys as tile activation.
 	root.addEventListener('keydown', (event) => event.stopPropagation())
 	root.addEventListener('click', (event) => event.stopPropagation())
+
+	showStep('slot')
 }

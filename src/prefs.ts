@@ -1,20 +1,13 @@
 /**
- * Footer preference toggles — Animation + Video — persisted in localStorage.
- * Animation: checked (default) = play intros; unchecked = settled UI on load.
- * Video: checked (default) = play kitchen clip on the footer; unchecked = paused.
+ * Animation + Video preferences.
+ * Toggles are hidden for now — both stay on.
  */
 
 const ANIM_KEY = 'bestija:animate'
 const VIDEO_KEY = 'bestija:video'
 
 export function animationsEnabled(): boolean {
-	try {
-		const stored = localStorage.getItem(ANIM_KEY)
-		if (stored === null) return true
-		return stored !== '0'
-	} catch {
-		return true
-	}
+	return true
 }
 
 export function setAnimationsEnabled(on: boolean) {
@@ -26,13 +19,7 @@ export function setAnimationsEnabled(on: boolean) {
 }
 
 export function videoEnabled(): boolean {
-	try {
-		const stored = localStorage.getItem(VIDEO_KEY)
-		if (stored === null) return true
-		return stored !== '0'
-	} catch {
-		return true
-	}
+	return true
 }
 
 export function setVideoEnabled(on: boolean) {
@@ -43,25 +30,17 @@ export function setVideoEnabled(on: boolean) {
 	}
 }
 
-/** Wire the footer Animation checkbox to localStorage. */
+/** Toggles are hidden — keep API so callers stay wired. */
 export function enableAnimationToggle() {
 	const input = document.querySelector<HTMLInputElement>('#anim-toggle')
 	if (!input) return
-
-	input.checked = animationsEnabled()
-	input.addEventListener('change', () => {
-		setAnimationsEnabled(input.checked)
-	})
+	input.checked = true
 }
 
-/** Wire the footer Video checkbox; optional callback runs after each change. */
+/** Toggles are hidden — keep API so callers stay wired. */
 export function enableVideoToggle(onChange?: (on: boolean) => void) {
 	const input = document.querySelector<HTMLInputElement>('#video-toggle')
 	if (!input) return
-
-	input.checked = videoEnabled()
-	input.addEventListener('change', () => {
-		setVideoEnabled(input.checked)
-		onChange?.(input.checked)
-	})
+	input.checked = true
+	onChange?.(true)
 }

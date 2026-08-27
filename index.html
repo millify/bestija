@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@100;200;300;400&family=Karla:wght@200;300;400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Josefin+Sans:wght@200;300;400;500&family=Karla:wght@300;400;500&display=swap"
       rel="stylesheet"
     />
     <style>
@@ -39,6 +39,12 @@
         min-height: 100%;
         padding: var(--inset);
         padding-bottom: calc(var(--inset) + 1.1rem);
+      }
+      @media (min-width: 900px) {
+        .shell {
+          --inset: clamp(5px, 0.575vw, 8px);
+          padding: 0;
+        }
       }
       .grid {
         display: grid;
@@ -142,22 +148,13 @@
         // (and any stored reduce pin) so the landing reads the same on every device.
         try {
           localStorage.removeItem('bestija:motion');
+          // Pref toggles are hidden — force animation + video on.
+          localStorage.removeItem('bestija:animate');
+          localStorage.removeItem('bestija:video');
         } catch (e) {}
         root.dataset.motion = 'full';
 
         try {
-          // Footer "Animation" checkbox — off means settled UI on load.
-          if (localStorage.getItem('bestija:animate') === '0') {
-            root.classList.add(
-              'skip-anim',
-              'seq-ready',
-              'intro-done',
-              'is-footer-video-on',
-              'is-footer-brand-on',
-              'is-footer-lede-body-on',
-              'is-footer-revealed',
-            );
-          }
           // Drop the old session-storage gate if it was left behind.
           sessionStorage.removeItem('bestija:seen');
         } catch (e) {}
@@ -240,105 +237,211 @@
           <div class="tile-media" aria-hidden="true"></div>
           <div class="tile-body">
             <div class="tile-lead">
-              <div class="tile-text">
-                <h2>Menu</h2>
+            <div class="tile-text">
+              <h2>Menu</h2>
               </div>
               <span class="scroll-hint" aria-hidden="true">
-                Scroll
-                <svg viewBox="0 0 24 24">
-                  <path d="M6 8.5 12 14.5 18 8.5" />
-                  <path d="M6 13.5 12 19.5 18 13.5" />
-                </svg>
+                <span class="scroll-hint-label">Scroll</span>
+                <span class="scroll-hint-icon" aria-hidden="true"></span>
               </span>
             </div>
 
-            <!-- Revealed only when the card is expanded, so the intro decode skips it. -->
+            <!-- Revealed only when the card is expanded, so the intro decode skips it.
+                 Allergen codes match https://bistro-bestija.com/menu-food/ -->
             <section class="card-more menu-sheet" aria-label="Menu">
               <header class="menu-head">
-                <span class="menu-season">Autumn · Winter</span>
-                <span class="menu-chef">Mateo Davidović</span>
+                <nav class="menu-tabs" role="tablist" aria-label="Menu sections">
+                  <button
+                    type="button"
+                    class="menu-tab"
+                    role="tab"
+                    id="menu-tab-food"
+                    aria-selected="true"
+                    aria-controls="menu-panel-food"
+                    data-menu-tab="food"
+                  >
+                    Food menu
+                  </button>
+                  <button
+                    type="button"
+                    class="menu-tab"
+                    role="tab"
+                    id="menu-tab-wine"
+                    aria-selected="false"
+                    aria-controls="menu-panel-wine"
+                    data-menu-tab="wine"
+                    tabindex="-1"
+                  >
+                    Wine
+                  </button>
+                  <button
+                    type="button"
+                    class="menu-tab"
+                    role="tab"
+                    id="menu-tab-drinks"
+                    aria-selected="false"
+                    aria-controls="menu-panel-drinks"
+                    data-menu-tab="drinks"
+                    tabindex="-1"
+                  >
+                    Drinks
+                  </button>
+                  <button
+                    type="button"
+                    class="menu-tab"
+                    role="tab"
+                    id="menu-tab-spirits"
+                    aria-selected="false"
+                    aria-controls="menu-panel-spirits"
+                    data-menu-tab="spirits"
+                    tabindex="-1"
+                  >
+                    Spirits
+                  </button>
+                </nav>
+                <div class="menu-head-trail">
+                  <button type="button" class="menu-jump" data-allergen-open>
+                    <svg class="menu-jump-icon" viewBox="0 0 16 16" aria-hidden="true">
+                      <circle cx="8" cy="8" r="6.25" />
+                      <path d="M8 7.2v4.1M8 5.15h.01" />
+                    </svg>
+                    Allergens
+                  </button>
+                  <span class="menu-chef">Mateo Davidović</span>
+                </div>
               </header>
 
-              <div class="menu-layout">
-                <div class="menu-col menu-col--dishes">
+              <div
+                class="menu-panel"
+                role="tabpanel"
+                id="menu-panel-food"
+                aria-labelledby="menu-tab-food"
+                data-menu-panel="food"
+              >
+                <p class="menu-panel-lead">
+                  Seasonal plates from the market — ask what came up from Dolac this morning.
+                </p>
+
               <div class="menu-group">
                 <h3 class="menu-heading">To start</h3>
                 <ul class="dish-list">
                   <li class="dish">
-                    <span class="dish-name">Steak tartare</span>
-                    <span class="dish-price">16 €</span>
-                    <span class="dish-note">smoked egg yolk, parsnip crisp</span>
+                    <span class="dish-name">Seeded focaccia</span>
+                    <span class="dish-price">6 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">extra virgin olive oil Belić</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 5">1 · 5</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Pil pil prawns</span>
+                    <span class="dish-name">Beef tartare</span>
+                    <span class="dish-price">20 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">smoked egg yolk, parsnip</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 4, 6, 7">1 · 4 · 6 · 7</span>
+                  </span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Shrimp on toasted focaccia</span>
                     <span class="dish-price">18 €</span>
-                    <span class="dish-note">garlic, chilli, sourdough toast</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">chili &amp; garlic butter</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 2, 13">1 · 2 · 13</span>
+                  </span>
                   </li>
                   <li class="dish">
                     <span class="dish-name">Burrata</span>
-                    <span class="dish-price">17 €</span>
-                    <span class="dish-note">grilled radicchio, XO prosciutto</span>
+                    <span class="dish-price">16 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">grilled radicchio, prosciutto XO</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 7, 8, 9, 12, 13">2 · 7 · 8 · 9 · 12 · 13</span>
+                  </span>
                   </li>
                   <li class="dish">
                     <span class="dish-name">Vitello tonnato</span>
                     <span class="dish-price">16 €</span>
-                    <span class="dish-note">crisp capers, pickled onion</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">crispy capers, pickled onion</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 6, 7, 9">2 · 6 · 7 · 9</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Carrot &amp; ginger</span>
-                    <span class="dish-price">11 €</span>
-                    <span class="dish-note">crème fraîche, pumpkin seed</span>
+                    <span class="dish-name">Carrot &amp; ginger soup</span>
+                    <span class="dish-price">9 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">crème fraîche, pumpkin seeds</span>
+                    <span class="dish-codes" aria-label="Allergens 2">2</span>
+                  </span>
                   </li>
                 </ul>
-              </div>
+            </div>
 
               <div class="menu-group">
                 <h3 class="menu-heading">Mains</h3>
                 <ul class="dish-list">
                   <li class="dish">
                     <span class="dish-name">Onglet steak</span>
-                    <span class="dish-price">27 €</span>
-                    <span class="dish-note">roast potatoes, charcutière</span>
-                  </li>
-                  <li class="dish">
-                    <span class="dish-name">Filet mignon</span>
-                    <span class="dish-price">34 €</span>
-                    <span class="dish-note">potato terrine, onion cream</span>
+                    <span class="dish-price">32 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">potatoes, charcuterie sauce</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 4, 9, 11">2 · 4 · 9 · 11</span>
+                  </span>
                   </li>
                   <li class="dish">
                     <span class="dish-name">Duck breast</span>
-                    <span class="dish-price">29 €</span>
-                    <span class="dish-note">salt-baked beetroot, radicchio, jus</span>
+                    <span class="dish-price">27 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">beetroot, radicchio, jus</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 9, 11">2 · 9 · 11</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Bavette burger</span>
-                    <span class="dish-price">22 €</span>
-                    <span class="dish-note">raclette, cognac onion, beer bun</span>
-                  </li>
-                  <li class="dish">
-                    <span class="dish-name">Adriatic bluefin tuna</span>
-                    <span class="dish-price">28 €</span>
-                    <span class="dish-note">’nduja, blanched kale</span>
-                  </li>
-                  <li class="dish">
-                    <span class="dish-name">Octopus</span>
-                    <span class="dish-price">26 €</span>
-                    <span class="dish-note">chickpea, ’nduja, salsa verde</span>
+                    <span class="dish-name">Sunchoke &amp; potato ravioli</span>
+                    <span class="dish-price">24 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">shiitake, chicken wing sauce, pecorino</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 2, 6, 9, 11">1 · 2 · 6 · 9 · 11</span>
+                  </span>
                   </li>
                   <li class="dish">
                     <span class="dish-name">Sea bass</span>
-                    <span class="dish-price">26 €</span>
-                    <span class="dish-note">white bean, cavolo nero, lemon aïoli</span>
+                    <span class="dish-price">28 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">butter beans, cavolo nero, lemon aioli</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 6, 7, 9, 11">2 · 6 · 7 · 9 · 11</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Mushroom ragù</span>
-                    <span class="dish-price">23 €</span>
-                    <span class="dish-note">gnocchi, black garlic, pecorino</span>
+                    <span class="dish-name">Octopus</span>
+                    <span class="dish-price">27 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">chickpeas, ’nduja, salsa verde</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 9, 11, 12">2 · 9 · 11 · 12</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Grilled cabbage <span class="dish-tag">veg</span></span>
-                    <span class="dish-price">19 €</span>
+                    <span class="dish-name">Cabbage <span class="dish-tag">veg</span></span>
+                    <span class="dish-price">22 €</span>
+                    <span class="dish-detail">
                     <span class="dish-note">tahini, buttermilk, salsa macha</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 3, 4, 6, 9, 11">2 · 3 · 4 · 6 · 9 · 11</span>
+                  </span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Bavette burger</span>
+                    <span class="dish-price">25 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">raclette, cognac onions, pickled mustard, brioche, beef dripping chips</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 2, 4, 6">1 · 2 · 4 · 6</span>
+                  </span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Filet mignon</span>
+                    <span class="dish-price">38 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">potatoes, charcuterie sauce</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 4, 9, 11">2 · 4 · 9 · 11</span>
+                  </span>
                   </li>
                 </ul>
               </div>
@@ -347,18 +450,27 @@
                 <h3 class="menu-heading">Sides</h3>
                 <ul class="dish-list">
                   <li class="dish">
-                    <span class="dish-name">Fries in beef fat</span>
-                    <span class="dish-price">6 €</span>
+                    <span class="dish-name">Bitter leaves</span>
+                    <span class="dish-price">10 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">gorgonzola, walnuts</span>
+                    <span class="dish-codes" aria-label="Allergens 2, 5, 9">2 · 5 · 9</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Roast potatoes</span>
-                    <span class="dish-price">6 €</span>
-                    <span class="dish-note">rosemary, garlic</span>
-                  </li>
-                  <li class="dish">
-                    <span class="dish-name">Radicchio salad</span>
+                    <span class="dish-name">Brussels sprouts</span>
                     <span class="dish-price">7 €</span>
-                    <span class="dish-note">forest-fruit vinaigrette</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">horseradish cream</span>
+                    <span class="dish-codes" aria-label="Allergens 2">2</span>
+                  </span>
+                  </li>
+                  <li class="dish">
+                    <span class="dish-name">Beef dripping chips</span>
+                    <span class="dish-price">7 €</span>
+                    <span class="dish-detail">
+                      <span class="dish-codes" aria-label="Allergens 2, 4, 9">2 · 4 · 9</span>
+                    </span>
                   </li>
                 </ul>
               </div>
@@ -368,18 +480,19 @@
                 <ul class="dish-list">
                   <li class="dish">
                     <span class="dish-name">Sticky toffee pudding</span>
-                    <span class="dish-price">8 €</span>
-                    <span class="dish-note">cardamom ice cream</span>
+                    <span class="dish-price">9 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">bourbon vanilla ice cream</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 2, 6">1 · 2 · 6</span>
+                  </span>
                   </li>
                   <li class="dish">
-                    <span class="dish-name">Basque chocolate cheesecake</span>
-                    <span class="dish-price">8 €</span>
-                    <span class="dish-note">blood orange coulis</span>
-                  </li>
-                  <li class="dish">
-                    <span class="dish-name">Chocolate tart</span>
-                    <span class="dish-price">7,50 €</span>
-                    <span class="dish-note">orange, amaretto, whipped cream</span>
+                    <span class="dish-name">Chocolate Basque cheesecake</span>
+                    <span class="dish-price">9 €</span>
+                    <span class="dish-detail">
+                    <span class="dish-note">red orange coulis</span>
+                    <span class="dish-codes" aria-label="Allergens 1, 2, 6">1 · 2 · 6</span>
+                  </span>
                   </li>
                 </ul>
               </div>
@@ -388,74 +501,663 @@
                 The market decides. Plates move with the season, so ask what came up from Dolac this morning.
                 Ten wines by the glass, all Croatian.
               </p>
-                </div>
+              <p class="menu-note menu-note--allergen">
+                Please check the
+                <button type="button" class="menu-note-link" data-allergen-open>
+                  allergens
+                </button>
+                before you order — numbers beside each plate match the legend.
+              </p>
+              </div>
 
-                <aside class="menu-col menu-col--allergens allergens" aria-label="Alergeni">
-                  <ul class="allergen-grid">
-                      <li class="allergen" style="--allergen: #dbb467; --icon: url(allergens/gluten.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Gluten</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #90b2c4; --icon: url(allergens/milk.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Milk</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #bfa97c; --icon: url(allergens/sesame.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Sesame</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #e0b53b; --icon: url(allergens/mustard.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Mustard seeds</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #c4a66a; --icon: url(allergens/nuts.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Tree nuts</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #efcc60; --icon: url(allergens/eggs.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Eggs</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #92c2e0; --icon: url(allergens/fish.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Fish</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #94d38d; --icon: url(allergens/soy.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Soy</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #8aa0aa; --icon: url(allergens/sulphite.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Sulphur dioxide</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #ffb8b8; --icon: url(allergens/garlic.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Garlic</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #86e279; --icon: url(allergens/celery.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Celery</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #e89a77; --icon: url(allergens/molluscs.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Molluscs</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #e57676; --icon: url(allergens/crustaceans.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Crustaceans</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #c69746; --icon: url(allergens/peanuts.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Peanuts</span>
-                      </li>
-                      <li class="allergen" style="--allergen: #e0b365; --icon: url(allergens/legumes.svg)">
-                        <span class="allergen-icon" aria-hidden="true"></span>
-                        <span>Legumes</span>
-                      </li>
-                    </ul>
-                </aside>
+              <div
+                class="menu-panel menu-panel--cols"
+                role="tabpanel"
+                id="menu-panel-wine"
+                aria-labelledby="menu-tab-wine"
+                data-menu-panel="wine"
+                hidden
+              >
+                <p class="menu-panel-lead">
+                  Glass / bottle. Ten pours by the glass — ask what’s open tonight.
+                </p>
+                <div class="menu-col-grid">
+<div class="menu-group">
+                  <h3 class="menu-heading">White</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Kunjas Grk</span>
+                      <span class="dish-price" aria-label="Glass 5.5 €, bottle 67 €">5.5 / 67 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Clean &amp; green Malvasia Istriana — acacia, apricot, stone fruit.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Ivanić Škrlet</span>
+                      <span class="dish-price" aria-label="Glass 7.9 €, bottle 55 €">7.9 / 55 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Light dry Škrlet from Ivanić-Grad — apple, citrus, mild floral.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Malvazija Kadum</span>
+                      <span class="dish-price" aria-label="Glass 5.5 €, bottle 36 €">5.5 / 36 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Istrian peach and citrus — playful freshness for long gatherings.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Belaj Chardonnay Selekcija</span>
+                      <span class="dish-price" aria-label="Glass 7.5 €, bottle 52.5 €">7.5 / 52.5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Aged in American, Slavonian and French oak with lees stirring — complex, structured.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Bibich Bilo</span>
+                      <span class="dish-price" aria-label="Glass 5.8 €, bottle 40 €">5.8 / 40 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Debit with short maceration, minimal intervention — ripe, fresh, everyday white.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Dvanajščak Sauvignon Blanc Mohokos Natura</span>
+                      <span class="dish-price" aria-label="Glass 7.1 €, bottle 50 €">7.1 / 50 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Organic Sauvignon from Međimurje’s highest site — 15 months in acacia.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Pieropan Soave</span>
+                      <span class="dish-price" aria-label="Glass 6.2 €, bottle 43.5 €">6.2 / 43.5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Veneto Soave — citrus, almond, a hint of minerality.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Graševina Enjingi</span>
+                      <span class="dish-price" aria-label="Glass 5 €, bottle 30 €">5 / 30 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Fresh Croatian Graševina — green apple, citrus, floral.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Pasji Rep Zelen</span>
+                      <span class="dish-price" aria-label="Glass 5 €, bottle 35 €">5 / 35 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Slovenian Zelen — citrus, green apple, light minerality.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Pod Korita Pošip</span>
+                      <span class="dish-price" aria-label="Glass 6.4 €, bottle 45 €">6.4 / 45 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Dalmatian Pošip — dried fruit, honey, gentle spice; fuller body.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Milas Žilavka</span>
+                      <span class="dish-price" aria-label="Glass 5.1 €, bottle 35 €">5.1 / 35 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Mediterranean Žilavka — fruity, floral, creamy structure.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+<div class="menu-group">
+                  <h3 class="menu-heading">Red</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Bertoša Teran</span>
+                      <span class="dish-price" aria-label="Glass 7 €, bottle 49 €">7 / 49 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Istrian ruby Teran — forest fruit, mild herbs, lively freshness.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Damjanić Borgonja</span>
+                      <span class="dish-price" aria-label="Glass 5.1 €, bottle 35.5 €">5.1 / 35.5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Fresh summer red — fruit, herbs, clove from three months in barrique.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Ščurek Cabernet Franc</span>
+                      <span class="dish-price" aria-label="Glass 5.8 €, bottle 40 €">5.8 / 40 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Eight months in wood — spicy, dark berry, velvet tannins.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Château Macquin Saint-Georges Saint-Émilion 2022</span>
+                      <span class="dish-price" aria-label="Glass 7.1 €, bottle 49.5 €">7.1 / 49.5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Classic Bordeaux — black fruit, spice, refined structure.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Ivanić Dvije Ruže</span>
+                      <span class="dish-price" aria-label="Glass 7.9 €, bottle 55 €">7.9 / 55 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Elegant red — floral, ripe peach, light citrus.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Altos Malbec</span>
+                      <span class="dish-price" aria-label="Glass 8.5 €, bottle 60 €">8.5 / 60 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Argentine Malbec — blueberry, raspberry, soft tannins.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Pasji Rep Jebatchin</span>
+                      <span class="dish-price" aria-label="Glass 7.35 €, bottle 55 €">7.35 / 55 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Deep red — blackcurrant, plum, spice; fuller body.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Tribidrag Rizman</span>
+                      <span class="dish-price" aria-label="Glass 7.7 €, bottle 54 €">7.7 / 54 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Black fruit, spice, firm tannins — strength with freshness.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Primus Plavac Mali</span>
+                      <span class="dish-price" aria-label="Glass 7.7 €, bottle 54 €">7.7 / 54 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Dalmatian Plavac — ripe plum, sour cherry, spice.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Dingač Vicelić</span>
+                      <span class="dish-price" aria-label="Bottle 85 €">85 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Full-bodied — red berries, spice and oak, firm ripe tannins.</span>
+                        <span class="dish-codes">0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+<div class="menu-group">
+                  <h3 class="menu-heading">Sparkling</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Champagne De Vilmont</span>
+                      <span class="dish-price" aria-label="Glass 10 €, bottle 75 €">10 / 75 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">French champagne — elegant and balanced, fine perlage, white fruit and citrus.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Jagunić Three Stars Brut, Plešivica</span>
+                      <span class="dish-price" aria-label="Glass 7 €, bottle 35 €">7 / 35 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">One of Croatia’s best sparkling wines — expressive, long; classic bottle fermentation.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Jagunić Rosé, Plešivica</span>
+                      <span class="dish-price" aria-label="Glass 7 €, bottle 35 €">7 / 35 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Pink bubbles of Plešivica — strawberry and cherry fruit, Champagne method.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Vigna Rampante Asolo Prosecco Superiore</span>
+                      <span class="dish-price" aria-label="Glass 7.5 €, bottle 33 €">7.5 / 33 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Asolo Prosecco Superiore DOCG Extra Dry Selvatico — fine, persistent mousse.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+<div class="menu-group">
+                  <h3 class="menu-heading">Rosé &amp; amber</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Ščurek Rumena Rebula</span>
+                      <span class="dish-price" aria-label="Glass 5.8 €, bottle 40 €">5.8 / 40 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Aged on fine lees — soft, mineral, fresh.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Belaj Rosé</span>
+                      <span class="dish-price" aria-label="Glass 5 €, bottle 30 €">5 / 30 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Istrian Teran &amp; Merlot — fruity, herbal, lively.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Bibich Žutina</span>
+                      <span class="dish-price" aria-label="Glass 7.7 €, bottle 54 €">7.7 / 54 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Orange Debit, 30 days maceration — natural yeasts, minimal intervention.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+<div class="menu-group">
+                  <h3 class="menu-heading">Fortified</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Bunčić Issa Prošek, Vis</span>
+                      <span class="dish-price" aria-label="Glass 8.7 €, bottle 60.75 €">8.7 / 60.75 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Organic Prošek from vine-dried Plavac — like chilled, fully ripe red grapes.</span>
+                        <span class="dish-codes">0.1 · 0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                </div>
+              </div>
+
+                            <div
+                class="menu-panel"
+                role="tabpanel"
+                id="menu-panel-drinks"
+                aria-labelledby="menu-tab-drinks"
+                data-menu-panel="drinks"
+                hidden
+              >
+                <p class="menu-panel-lead">
+                  Soft drinks, coffee, water, cocktails, and craft beer.
+                </p>
+
+<div class="menu-group">
+                  <h3 class="menu-heading">Juices</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Kombucha</span>
+                      <span class="dish-price">4.5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.33 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Freshly pressed orange juice</span>
+                      <span class="dish-price">5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.20 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Freshly pressed lemonade</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.20 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Tonic</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.20 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Coca Cola</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.33 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Coca Cola Zero</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.33 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="menu-group">
+                  <h3 class="menu-heading">Hot drinks</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Espresso</span>
+                      <span class="dish-price">3 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Flat white</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Cappuccino</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Coffee with milk</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Tea</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">green, black, herbal, fruit</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="menu-group">
+                  <h3 class="menu-heading">Water</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Jana</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.75 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Jamnica</span>
+                      <span class="dish-price">4 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">0.75 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="menu-group">
+                  <h3 class="menu-heading">Cocktails</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Beštija</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Skinny bitch</span>
+                      <span class="dish-price">8 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Mojito</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Negroni</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Dry Martini</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Old Fashioned</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Amaretto Sour</span>
+                      <span class="dish-price">10 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Aperol Spritz</span>
+                      <span class="dish-price">8 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Hugo</span>
+                      <span class="dish-price">8 €</span>
+                    </li>
+                  </ul>
+                </div>
+                <div class="menu-group">
+                  <h3 class="menu-heading">Craft beer</h3>
+                  <ul class="dish-list">
+                    <li class="dish">
+                      <span class="dish-name">Swing</span>
+                      <span class="dish-price">5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">American Red Ale · Crafters · 0.5 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Waitapu</span>
+                      <span class="dish-price">5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Blond Ale · Lepi dečki · 0.5 l</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Zlatni medvjed</span>
+                      <span class="dish-price">5 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">Pilsner · Medvedgrad · 0.5 l</span>
+                      </span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div
+                class="menu-panel menu-panel--cols"
+                role="tabpanel"
+                id="menu-panel-spirits"
+                aria-labelledby="menu-tab-spirits"
+                data-menu-panel="spirits"
+                hidden
+              >
+                <p class="menu-panel-lead">
+                  Measures are 0.03 l unless noted.
+                </p>
+                <div class="menu-col-grid">
+                  <ul class="dish-list dish-list--cols">
+                    <li class="dish">
+                      <span class="dish-name">Pelinkovac Antique</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Aura likeri</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Travarica</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Roner Williams</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Sir Edmond</span>
+                      <span class="dish-price">5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Campari</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Hendrick’s Gin</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Glenfiddich</span>
+                      <span class="dish-price">6 €</span>
+                      <span class="dish-detail">
+                        <span class="dish-note">12 y.o. single malt</span>
+                      </span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Jameson</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Jägermeister</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Amaretto Disaronno</span>
+                      <span class="dish-price">3 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Amaro Montenegro</span>
+                      <span class="dish-price">3 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Virtuous Vodka Rye</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Virtuous Vodka Ginger</span>
+                      <span class="dish-price">3.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Bogowski Gin</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Herradura Tequila</span>
+                      <span class="dish-price">6 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Fortaleza Blanco</span>
+                      <span class="dish-price">8.8 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Legendario Blanco</span>
+                      <span class="dish-price">3 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Legendario Elixir</span>
+                      <span class="dish-price">5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Havana 3</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Berry Bros &amp; Rudd 10 Y.O.</span>
+                      <span class="dish-price">9.6 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Doorly’s X.O.</span>
+                      <span class="dish-price">5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Autentico Nativo 15 Y.O.</span>
+                      <span class="dish-price">4.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Autentico Nativo X.O.</span>
+                      <span class="dish-price">11 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Capucana Cachaça</span>
+                      <span class="dish-price">4.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Buffalo Trace Bourbon</span>
+                      <span class="dish-price">4 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Kavalan</span>
+                      <span class="dish-price">7.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Kensei Japanese</span>
+                      <span class="dish-price">7 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Laphroaig 10 Y.O.</span>
+                      <span class="dish-price">7 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">The Singleton 12 Y.O.</span>
+                      <span class="dish-price">4.5 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Redbreast 12 Y.O.</span>
+                      <span class="dish-price">5.8 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Penderyn Sherrywood</span>
+                      <span class="dish-price">6.8 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Hine Rare VSOP</span>
+                      <span class="dish-price">6.3 €</span>
+                    </li>
+                    <li class="dish">
+                      <span class="dish-name">Boulard VSOP Calvados</span>
+                      <span class="dish-price">5 €</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </section>
+          </div>
+
+          <!-- Sibling of tile-body so absolute inset covers the fixed open card,
+               not the top of the scrollable menu content. -->
+          <div class="allergen-dialog" data-allergen-dialog hidden>
+            <div
+              class="allergen-dialog-card"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="allergen-dialog-title"
+            >
+              <header class="allergen-dialog-head">
+                <h3 class="menu-heading" id="allergen-dialog-title">Allergens</h3>
+                <button
+                  type="button"
+                  class="allergen-dialog-close"
+                  data-allergen-close
+                  aria-label="Close allergens"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M2 2 14 14M14 2 2 14" />
+                  </svg>
+                </button>
+              </header>
+              <p class="allergen-legend-lead">
+                Numbers next to each plate mark allergens. Check the legend and compare.
+              </p>
+              <ol class="allergen-list">
+                <li class="allergen"><span class="allergen-num">1</span> Gluten (cereals)</li>
+                <li class="allergen"><span class="allergen-num">2</span> Milk</li>
+                <li class="allergen"><span class="allergen-num">3</span> Sesame</li>
+                <li class="allergen"><span class="allergen-num">4</span> Mustard seeds</li>
+                <li class="allergen"><span class="allergen-num">5</span> Nuts</li>
+                <li class="allergen"><span class="allergen-num">6</span> Eggs</li>
+                <li class="allergen"><span class="allergen-num">7</span> Fish</li>
+                <li class="allergen"><span class="allergen-num">8</span> Soy</li>
+                <li class="allergen"><span class="allergen-num">9</span> Sulphur dioxide</li>
+                <li class="allergen"><span class="allergen-num">10</span> Garlic</li>
+                <li class="allergen"><span class="allergen-num">11</span> Celery</li>
+                <li class="allergen"><span class="allergen-num">12</span> Molluscs</li>
+                <li class="allergen"><span class="allergen-num">13</span> Crustaceans</li>
+                <li class="allergen"><span class="allergen-num">14</span> Peanuts</li>
+                <li class="allergen"><span class="allergen-num">15</span> Legumes</li>
+              </ol>
+            </div>
           </div>
         </article>
 
@@ -463,61 +1165,232 @@
           <div class="tile-media" aria-hidden="true"></div>
           <div class="tile-body">
             <div class="tile-lead">
-              <div class="tile-text">
+            <div class="tile-text">
                 <h2>Our story</h2>
               </div>
               <span class="scroll-hint" aria-hidden="true">
-                Scroll
-                <svg viewBox="0 0 24 24">
-                  <path d="M6 8.5 12 14.5 18 8.5" />
-                  <path d="M6 13.5 12 19.5 18 13.5" />
-                </svg>
+                <span class="scroll-hint-label">Scroll</span>
+                <span class="scroll-hint-icon" aria-hidden="true"></span>
               </span>
             </div>
 
             <section class="card-more story-sheet" aria-label="Our story">
-              <header class="sheet-head">
-                <span class="sheet-kicker">The house</span>
-                <span class="sheet-aside">Masarykova · Zagreb</span>
+              <header class="story-head">
+                <nav class="story-tabs" role="tablist" aria-label="Our story sections">
+                  <button
+                    type="button"
+                    class="story-tab"
+                    role="tab"
+                    id="story-tab-about"
+                    aria-selected="true"
+                    aria-controls="story-panel-about"
+                    data-story-tab="about"
+                  >
+                    About
+                  </button>
+                  <button
+                    type="button"
+                    class="story-tab"
+                    role="tab"
+                    id="story-tab-gallery"
+                    aria-selected="false"
+                    aria-controls="story-panel-gallery"
+                    data-story-tab="gallery"
+                    tabindex="-1"
+                  >
+                    Gallery
+                  </button>
+                </nav>
+                <span class="story-head-aside">Masarykova · Zagreb</span>
               </header>
 
-              <div class="story-brand">
-                <p class="story-mark">„beštija“</p>
-                <p class="story-pron" aria-label="Pronounced besh-tee-yah">besh-tee-yah</p>
-                <p class="story-meaning">
-                  Beast — in the old tongue, a wild one. The name we cook under.
-                </p>
-              </div>
+              <div
+                class="story-panel"
+                role="tabpanel"
+                id="story-panel-about"
+                aria-labelledby="story-tab-about"
+                data-story-panel="about"
+              >
+                <div class="story-prose">
+                  <div class="story-col">
+                    <figure class="story-brand" aria-label="About the name">
+                      <p class="story-mark">„beštija“</p>
+                      <p class="story-pron">
+                        <span class="visually-hidden">Pronounced </span>
+                        <span aria-hidden="true">/</span>besh-tee-yah<span aria-hidden="true">/</span>
+                      </p>
+                      <p class="story-meaning">Beast — in the old tongue, a wild one.</p>
+                      <p class="story-meaning-sub">The name we cook under.</p>
+                    </figure>
 
-              <p class="sheet-lead">
-                Casual bistro, serious cooking. Beštija grew out of market mornings at Dolac and nights in the
-                courtyard off Masarykova — a small crew cooking what the day brings.
+                    <p class="sheet-lead">
+                      A private oasis in the heart of Zagreb — in the yard of one of the main streets, still a known
+                      address to everyone who celebrates food, and a refuge for those yet to discover it.
+                    </p>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">The house</h3>
+                      <p>
+                        The best menus are arranged by the season, especially when the magic happens under the auspices
+                        of a small team with big ideas and precise execution. Our menus are smooth, tasty, playful and
+                        loose with a clear guiding thread: seasonal food that is the queen of every plate.
               </p>
+            </div>
+                  </div>
 
-              <div class="sheet-block">
-                <h3 class="sheet-heading">The crew</h3>
-                <p>
-                  Chef Mateo Davidović and the floor team keep the room moving: sharp plates, Croatian wine by the
-                  glass, and a house that still feels like a neighbourhood bistro.
-                </p>
+                  <div class="story-col">
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">The crew</h3>
+                      <p>
+                        In Beštija, our team is made up of talented individuals who work together to create an
+                        exceptional dining experience. From the chef to the waiters, each member plays an integral role
+                        in ensuring that every guest leaves satisfied and eager to return.
+                      </p>
+                    </div>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">The kitchen</h3>
+                      <p>
+                        Our menu changes with each season. It is our mission to offer guests a different version of a
+                        familiar, traditional dish — and delight them at the same time.
+                      </p>
+                    </div>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">Our philosophy</h3>
+                      <p>
+                        Every day we want as many satisfied gourmands who return again and again — as many empty plates
+                        and satisfied smiles as possible. Your satisfaction is our inspiration.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div class="sheet-block">
-                <h3 class="sheet-heading">The room</h3>
-                <p>
-                  Inside, wood tables and bentwood chairs. Outside, the courtyard — tucked away from the street,
-                  known to anyone who celebrates food. Lunch through late dinner, Tuesday to Sunday.
-                </p>
-              </div>
-
-              <div class="sheet-block">
-                <h3 class="sheet-heading">The kitchen</h3>
-                <p>
-                  Adriatic fish, market vegetables, and a menu that shifts with the week. No theatre — just clean
-                  cooking, good drinks, and a table worth lingering at.
-                </p>
+              <div
+                class="story-panel"
+                role="tabpanel"
+                id="story-panel-gallery"
+                aria-labelledby="story-tab-gallery"
+                data-story-panel="gallery"
+                hidden
+              >
+                <div class="story-gallery-shell">
+                  <div class="story-gallery-grid" data-story-gallery>
+                    <!-- Portrait cells first in pack slots; landscape/interior fill the rest. -->
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="0">
+                      <img src="/gallery/cuisine/cuisine-01.webp" alt="Seasonal dish" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="1">
+                      <img src="/gallery/interior/entrance.webp" alt="Entrance to Bistro Beštija" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="2">
+                      <img src="/gallery/cuisine/cuisine-02.webp" alt="Plated course" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="3">
+                      <img src="/gallery/interior/interior-01.webp" alt="Dining room interior" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="4">
+                      <img src="/gallery/interior/gallery-01.webp" alt="Courtyard and tables" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="5">
+                      <img src="/gallery/interior/gallery-02.webp" alt="Restaurant atmosphere" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="6">
+                      <img src="/gallery/cuisine/cuisine-03.webp" alt="Kitchen plating" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="7">
+                      <img src="/gallery/interior/gallery-03.webp" alt="Evening in the courtyard" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="8">
+                      <img src="/gallery/interior/gallery-04.webp" alt="Bar and dining space" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="9">
+                      <img src="/gallery/interior/interior-03.webp" alt="Interior seating" loading="lazy" width="1024" height="576" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="10">
+                      <img src="/gallery/cuisine/cuisine-04.webp" alt="Signature plate" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="11">
+                      <img src="/gallery/cuisine/cuisine-06.webp" alt="Cuisine detail" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="12">
+                      <img src="/gallery/cuisine/cuisine-05.webp" alt="Seasonal ingredients" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="13">
+                      <img src="/gallery/cuisine/cuisine-07.webp" alt="Finished plate" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="14">
+                      <img src="/gallery/cuisine/cuisine-08.webp" alt="Bistro dish" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="15">
+                      <img src="/gallery/cuisine/cuisine-09.webp" alt="Course presentation" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="16">
+                      <img src="/gallery/cuisine/cuisine-10.webp" alt="Market-led plate" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="17">
+                      <img src="/gallery/cuisine/cuisine-12.webp" alt="Seasonal cuisine" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="18">
+                      <img src="/gallery/cuisine/cuisine-14.webp" alt="Dining plate" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="19">
+                      <img src="/gallery/cuisine/cuisine-11.webp" alt="Detail of the dish" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="20">
+                      <img src="/gallery/cuisine/cuisine-15.webp" alt="Beštija cuisine" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="21">
+                      <img src="/gallery/cuisine/cuisine-13.webp" alt="Chef’s plate" loading="lazy" width="683" height="1024" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="22">
+                      <img src="/gallery/cuisine/cuisine-16.webp" alt="Another course" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="23">
+                      <img src="/gallery/cuisine/cuisine-17.webp" alt="Plate from the kitchen" loading="lazy" width="1024" height="683" />
+                    </button>
+                    <button type="button" class="story-gallery-item" data-gallery-open data-gallery-index="24">
+                      <img src="/gallery/cuisine/cuisine-18.webp" alt="Michelin-recommended cuisine" loading="lazy" width="1024" height="683" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </section>
+          </div>
+
+          <div class="gallery-dialog" data-gallery-dialog hidden>
+            <button
+              type="button"
+              class="gallery-dialog-close"
+              data-gallery-close
+              aria-label="Close gallery"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 2 14 14M14 2 2 14" />
+              </svg>
+            </button>
+            <div
+              class="gallery-dialog-card"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Gallery image"
+            >
+              <button type="button" class="gallery-dialog-nav gallery-dialog-nav--prev" data-gallery-prev aria-label="Previous image">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M10 2 4 8l6 6" />
+                </svg>
+              </button>
+              <figure class="gallery-dialog-figure">
+                <img data-gallery-image alt="" />
+                <figcaption class="gallery-dialog-caption" data-gallery-caption></figcaption>
+              </figure>
+              <button type="button" class="gallery-dialog-nav gallery-dialog-nav--next" data-gallery-next aria-label="Next image">
+                <svg viewBox="0 0 16 16" aria-hidden="true">
+                  <path d="M6 2l6 6-6 6" />
+                </svg>
+              </button>
+            </div>
           </div>
         </article>
 
@@ -525,26 +1398,54 @@
           <div class="tile-media" aria-hidden="true"></div>
           <div class="tile-body">
             <div class="tile-lead">
-              <div class="tile-text">
-                <h2>Reservations</h2>
+            <div class="tile-text">
+              <h2>Reservations</h2>
               </div>
               <span class="scroll-hint" aria-hidden="true">
-                Scroll
-                <svg viewBox="0 0 24 24">
-                  <path d="M6 8.5 12 14.5 18 8.5" />
-                  <path d="M6 13.5 12 19.5 18 13.5" />
-                </svg>
+                <span class="scroll-hint-label">Scroll</span>
+                <span class="scroll-hint-icon" aria-hidden="true"></span>
               </span>
             </div>
 
             <section class="card-more reserve-sheet" aria-label="Reservations">
+              <header class="reserve-head">
+                <nav class="reserve-tabs" role="tablist" aria-label="Reservations sections">
+                  <button
+                    type="button"
+                    class="reserve-tab"
+                    role="tab"
+                    id="reserve-tab-book"
+                    aria-selected="true"
+                    aria-controls="reserve-panel-book"
+                    data-reserve-tab="book"
+                  >
+                    Book a table
+                  </button>
+                  <button
+                    type="button"
+                    class="reserve-tab"
+                    role="tab"
+                    id="reserve-tab-gift"
+                    aria-selected="false"
+                    aria-controls="reserve-panel-gift"
+                    data-reserve-tab="gift"
+                    tabindex="-1"
+                  >
+                    Gift card
+                  </button>
+                </nav>
+                <span class="reserve-head-aside">Bib Gourmand 2023–2024</span>
+              </header>
+
+              <div
+                class="reserve-panel"
+                role="tabpanel"
+                id="reserve-panel-book"
+                aria-labelledby="reserve-tab-book"
+                data-reserve-panel="book"
+              >
               <div class="reserve-layout">
                 <aside class="reserve-info">
-                  <header class="sheet-head">
-                    <span class="sheet-kicker">Book a table</span>
-                    <span class="sheet-aside">Bib Gourmand 2023–2024</span>
-                  </header>
-
                   <p class="sheet-lead">
                     Tables are booked with the house. Pick a time here, or call and we’ll save you a seat —
                     lunch, dinner, or a long evening in the courtyard.
@@ -567,7 +1468,7 @@
                         >Masarykova 11/1, Zagreb</a>
                       </li>
                     </ul>
-                  </div>
+            </div>
 
                   <div class="sheet-block">
                     <h3 class="sheet-heading">Hours</h3>
@@ -586,139 +1487,236 @@
                   </div>
                 </aside>
 
-                <div class="reserve-book" data-reserve-root>
-                  <div class="reserve-step is-active" data-reserve-step="slot">
-                    <header class="reserve-book-head">
-                      <h3 class="reserve-book-title">Reserve your table</h3>
-                      <p class="reserve-book-sub">Bistro Beštija</p>
-                    </header>
-
-                    <div class="reserve-pick-row">
+                <div class="reserve-book" data-reserve-root data-reserve-phase="slot">
+                  <div class="reserve-book-top">
+                    <div class="reserve-pick-row" data-reserve-pick>
                       <label class="reserve-field">
                         <span class="visually-hidden">Party size</span>
-                        <select class="reserve-control" data-reserve-party name="party" aria-label="Party size">
-                          <!-- Options 2–50 filled by reserve.ts -->
-                        </select>
+                        <span class="reserve-field-shell" data-reserve-party-shell>
+                          <select class="reserve-control" data-reserve-party name="party" aria-label="Party size">
+                            <!-- Options 2–50 filled by reserve.ts -->
+                          </select>
+                          <svg class="reserve-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                        </span>
                       </label>
                       <label class="reserve-field">
                         <span class="visually-hidden">Date</span>
-                        <input
-                          class="reserve-control"
-                          data-reserve-date
-                          type="date"
-                          name="date"
-                          aria-label="Date"
-                        />
+                        <span class="reserve-field-shell" data-reserve-date-shell>
+                          <input
+                            class="reserve-control"
+                            data-reserve-date
+                            type="date"
+                            name="date"
+                            aria-label="Date"
+                          />
+                          <svg class="reserve-field-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M8 2v4" />
+                            <path d="M16 2v4" />
+                            <rect width="18" height="18" x="3" y="4" rx="2" />
+                            <path d="M3 10h18" />
+                          </svg>
+                        </span>
                       </label>
+                    </div>
+
+                    <p class="reserve-book-summary" data-reserve-summary hidden></p>
+                  </div>
+
+                  <div class="reserve-main">
+                    <div
+                      class="reserve-main-panel is-active"
+                      data-reserve-step="slot"
+                      role="tabpanel"
+                    >
+                      <div class="reserve-times-shell">
+                        <div
+                          class="reserve-times"
+                          data-reserve-times
+                          role="listbox"
+                          aria-label="Available times"
+                        ></div>
+                        <div class="reserve-times-rail" data-reserve-times-rail aria-hidden="true">
+                          <div class="reserve-times-thumb" data-reserve-times-thumb></div>
+                        </div>
+                      </div>
                     </div>
 
                     <div
-                      class="reserve-times"
-                      data-reserve-times
-                      role="listbox"
-                      aria-label="Available times"
-                    ></div>
+                      class="reserve-main-panel"
+                      data-reserve-step="confirm"
+                      role="tabpanel"
+                      hidden
+                    >
+                      <p class="reserve-confirm-copy" data-reserve-confirm-copy></p>
+                    </div>
 
-                    <button type="button" class="reserve-btn reserve-btn--primary" data-reserve-next disabled>
-                      Reserve now
-                    </button>
-                  </div>
-
-                  <div class="reserve-step" data-reserve-step="details" hidden>
-                    <header class="reserve-book-head">
-                      <h3 class="reserve-book-title">Reserve your table</h3>
-                      <p class="reserve-book-sub">Bistro Beštija</p>
-                      <p class="reserve-book-summary" data-reserve-summary></p>
-                    </header>
-
-                    <form class="reserve-form" data-reserve-form novalidate>
-                      <div class="reserve-pick-row">
+                    <div
+                      class="reserve-main-panel"
+                      data-reserve-step="details"
+                      role="tabpanel"
+                      hidden
+                    >
+                      <form class="reserve-form" data-reserve-form id="reserve-guest-form" novalidate>
+                        <div class="reserve-pick-row">
+                          <label class="reserve-field">
+                            <span class="visually-hidden">First name</span>
+                            <input class="reserve-control" type="text" name="firstName" autocomplete="given-name" placeholder="First name" />
+                          </label>
+                          <label class="reserve-field">
+                            <span class="visually-hidden">Last name</span>
+                            <input class="reserve-control" type="text" name="lastName" autocomplete="family-name" placeholder="Last name" />
+                          </label>
+                        </div>
                         <label class="reserve-field">
-                          <span class="visually-hidden">First name</span>
-                          <input class="reserve-control" type="text" name="firstName" autocomplete="given-name" placeholder="First name" required />
+                          <span class="visually-hidden">Email</span>
+                          <input class="reserve-control" type="email" name="email" autocomplete="email" placeholder="Email (for confirmation)" />
                         </label>
                         <label class="reserve-field">
-                          <span class="visually-hidden">Last name</span>
-                          <input class="reserve-control" type="text" name="lastName" autocomplete="family-name" placeholder="Last name" required />
+                          <span class="visually-hidden">Phone number</span>
+                          <input class="reserve-control" type="tel" name="phone" autocomplete="tel" placeholder="Phone number" />
                         </label>
-                      </div>
-                      <label class="reserve-field">
-                        <span class="visually-hidden">Email</span>
-                        <input class="reserve-control" type="email" name="email" autocomplete="email" placeholder="Email (for confirmation)" required />
-                      </label>
-                      <label class="reserve-field">
-                        <span class="visually-hidden">Phone number</span>
-                        <input class="reserve-control" type="tel" name="phone" autocomplete="tel" placeholder="Phone number" required />
-                      </label>
-                      <label class="reserve-field">
-                        <span class="visually-hidden">Visit purpose</span>
-                        <select class="reserve-control" name="purpose" aria-label="Visit purpose (optional)">
-                          <option value="">Visit purpose (optional)</option>
-                          <option value="dinner">Dinner</option>
-                          <option value="lunch">Lunch</option>
-                          <option value="celebration">Celebration</option>
-                          <option value="business">Business</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </label>
-                      <label class="reserve-field">
-                        <span class="visually-hidden">Message</span>
-                        <input class="reserve-control" type="text" name="message" placeholder="Message (optional)" />
-                      </label>
+                        <label class="reserve-field">
+                          <span class="visually-hidden">Visit purpose</span>
+                          <select class="reserve-control" name="purpose" aria-label="Visit purpose (optional)">
+                            <option value="">Visit purpose (optional)</option>
+                            <option value="dinner">Dinner</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="celebration">Celebration</option>
+                            <option value="business">Business</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </label>
+                        <label class="reserve-field">
+                          <span class="visually-hidden">Message</span>
+                          <input class="reserve-control" type="text" name="message" placeholder="Message (optional)" />
+                        </label>
 
-                      <p class="reserve-legal">
-                        By clicking Submit I accept the
-                        <a href="#" data-reserve-link>T&amp;Cs</a>
-                        and acknowledge the
-                        <a href="#" data-reserve-link>Privacy Policy</a>.
-                      </p>
+                        <p class="reserve-legal">
+                          By clicking Submit I accept the
+                          <a href="#" data-reserve-link>T&amp;Cs</a>
+                          and acknowledge the
+                          <a href="#" data-reserve-link>Privacy Policy</a>.
+                        </p>
 
-                      <label class="reserve-check">
-                        <input type="checkbox" name="marketing" />
-                        <span>
-                          Receive discounts, offers, and updates by email from Bistro Beštija.
-                        </span>
-                      </label>
+                        <label class="reserve-check">
+                          <input type="checkbox" name="marketing" />
+                          <span>
+                            Receive discounts, offers, and updates by email from Bistro Beštija.
+                          </span>
+                        </label>
+                      </form>
+                    </div>
 
-                      <div class="reserve-actions">
-                        <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-back>
-                          Back
-                        </button>
-                        <button type="submit" class="reserve-btn reserve-btn--primary">
-                          Submit
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-
-                  <div class="reserve-step" data-reserve-step="done" hidden>
-                    <header class="reserve-book-head">
-                      <h3 class="reserve-book-title">You’re booked</h3>
-                      <p class="reserve-book-sub">Bistro Beštija</p>
-                      <p class="reserve-book-summary" data-reserve-done-summary></p>
-                    </header>
-                    <p class="reserve-done-copy">
-                      We’ve noted your request. You’ll get a confirmation by email shortly — or call us if
-                      anything changes.
-                    </p>
-                    <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-reset>
-                      Book another table
-                    </button>
-                  </div>
-
-                  <div class="reserve-dialog" data-reserve-dialog hidden>
-                    <div class="reserve-dialog-card" role="dialog" aria-modal="true" aria-labelledby="reserve-dialog-title">
-                      <p class="reserve-dialog-copy" id="reserve-dialog-title" data-reserve-dialog-copy></p>
-                      <div class="reserve-dialog-actions">
-                        <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-dialog-cancel>
-                          Cancel
-                        </button>
-                        <button type="button" class="reserve-btn reserve-btn--primary" data-reserve-dialog-ok>
-                          OK
-                        </button>
+                    <div
+                      class="reserve-main-panel"
+                      data-reserve-step="done"
+                      role="tabpanel"
+                      hidden
+                    >
+                      <div class="reserve-done">
+                        <h3 class="reserve-book-title">You’re booked</h3>
+                        <p class="reserve-done-copy">
+                          We’ve noted your request. You’ll get a confirmation by email shortly — or call us if
+                          anything changes.
+                        </p>
                       </div>
                     </div>
                   </div>
+
+                  <div class="reserve-actions" data-reserve-actions data-actions="slot">
+                    <button type="button" class="reserve-btn reserve-btn--primary" data-reserve-next disabled>
+                      Book now
+                    </button>
+                    <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-confirm-cancel hidden>
+                      Cancel
+                    </button>
+                    <button type="button" class="reserve-btn reserve-btn--primary" data-reserve-confirm-ok hidden>
+                      OK
+                    </button>
+                    <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-back hidden>
+                      Back
+                    </button>
+                    <button type="submit" class="reserve-btn reserve-btn--primary" data-reserve-submit form="reserve-guest-form" hidden>
+                      Submit
+                    </button>
+                    <button type="button" class="reserve-btn reserve-btn--ghost" data-reserve-reset hidden>
+                      Book another table
+                    </button>
+                  </div>
+                </div>
+              </div>
+              </div>
+
+              <div
+                class="reserve-panel"
+                role="tabpanel"
+                id="reserve-panel-gift"
+                aria-labelledby="reserve-tab-gift"
+                data-reserve-panel="gift"
+                hidden
+              >
+                <div class="gift-layout">
+                  <aside class="gift-info">
+                    <p class="sheet-lead">
+                      A Beštija gift card for any amount — pay by bank transfer, and we’ll issue the card once
+                      the payment shows.
+                    </p>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">Payment</h3>
+                      <p class="gift-iban">HR2724020061101067203</p>
+                      <p>Enter your name and surname in the payment description.</p>
+                    </div>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">Instructions</h3>
+                      <ol class="gift-steps">
+                        <li>
+                          Transfer the desired amount to the giro account above, with your full name in the
+                          description.
+                        </li>
+                        <li>
+                          Email
+                          <a href="mailto:bestijamasarykova@gmail.com?subject=Gift%20card">bestijamasarykova@gmail.com</a>
+                          so we can confirm the payment and issue an invoice.
+                        </li>
+                        <li>
+                          Include a delivery address — or pick the card up at Beštija, Masarykova 11/1.
+                        </li>
+                      </ol>
+                    </div>
+
+                    <div class="sheet-block">
+                      <h3 class="sheet-heading">Good to know</h3>
+                      <p>
+                        Sample is €50 — any amount welcome. The QR opens the same page as the physical card.
+                      </p>
+                    </div>
+                  </aside>
+
+                  <aside class="gift-visual">
+                    <figure class="gift-card" aria-label="Sample €50 gift card">
+                      <div class="gift-card-qr">
+                        <img
+                          src="/gift/qr.svg"
+                          alt="QR code for gift card instructions"
+                          width="200"
+                          height="200"
+                          decoding="async"
+                        />
+                      </div>
+                      <div class="gift-card-meta">
+                        <p class="gift-card-name">Bistro Beštija</p>
+                        <p class="gift-card-place">Masarykova 11/1, Zagreb</p>
+                        <p class="gift-card-value">€&nbsp;50 gift card</p>
+                      </div>
+                    </figure>
+                  </aside>
                 </div>
               </div>
             </section>
@@ -731,17 +1729,17 @@
     <section class="screen screen--mid" id="mid" aria-label="Story and atmosphere">
       <div class="shell">
         <div class="mobile-stack mobile-stack--mid" id="mid-grid"></div>
-      </div>
+            </div>
     </section>
 
     <section class="screen screen--end" id="end" aria-label="Visit and footer">
       <div class="shell">
         <div class="mobile-stack mobile-stack--end" id="end-grid"></div>
-      </div>
+          </div>
     </section>
 
     <footer class="screen screen--footer" id="footer">
-      <div class="footer-toggles" id="footer-toggles">
+      <div class="footer-toggles" id="footer-toggles" hidden>
         <label class="anim-toggle" for="anim-toggle">
           <input type="checkbox" id="anim-toggle" checked />
           <span>Animation</span>
@@ -772,7 +1770,7 @@
               </video>
             </div>
             <div class="ftile-veil" aria-hidden="true"></div>
-          </article>
+        </article>
 
           <article class="ftile ftile--identity">
             <div class="footer-identity-stack">
@@ -782,7 +1780,7 @@
                   Give yourself over to a culinary experience at our bistro —
                   every bite an explosion of flavour.
                 </p>
-              </div>
+            </div>
               <div class="footer-michelin">
                 <div class="footer-badges" role="list" aria-label="Michelin Guide recognition">
                   <a class="michelin-badge" role="listitem" href="https://guide.michelin.com/en/zagreb-region/zagreb/restaurant/bestija" target="_blank" rel="noopener noreferrer" aria-label="Michelin Guide 2020">
@@ -812,8 +1810,8 @@
                   </span>
                 </p>
               </div>
-            </div>
-          </article>
+          </div>
+        </article>
           </section>
 
           <section class="ftile ftile--actions">
@@ -862,7 +1860,7 @@
                   </a>
                 </li>
               </ul>
-            </div>
+    </div>
           </div>
 
           <div class="ftile ftile--follow">

@@ -2,12 +2,14 @@
  * Mobile vs desktop board layout.
  *
  * Mobile (3 screens):
- *   0 — logo + menu + reservations (intro + scroll cue)
- *   1 — story + kitchen video + hero identity
- *   2 — visit · follow · motto/legal (one row each)
+ *   0 — slim full wordmark + story + menu + reservations (after logo collapse)
+ *   1 — kitchen video + hero identity
+ *   2 — visit · follow · motto/legal
  *
  * Desktop keeps the home 2×2 grid and the full footer board.
  */
+
+import { resetLogoMark, applyLogoCompact } from './logo-collapse'
 
 const MOBILE_MQ = '(max-width: 899px)'
 
@@ -68,12 +70,17 @@ function applyLayout() {
 	}
 
 	if (next === 'mobile') {
-		homeGrid.append(logo, menu, reservations)
-		midGrid.append(story, video, identity)
+		homeGrid.append(logo, story, menu, reservations)
+		midGrid.append(video, identity)
 		endGrid.append(visit, follow, bottom)
 		if (toggles && endShell) endShell.prepend(toggles)
 		document.documentElement.dataset.board = 'mobile'
+		// If intro already finished (e.g. resize back to mobile), keep compact mark.
+		if (document.documentElement.classList.contains('intro-done')) {
+			applyLogoCompact()
+		}
 	} else {
+		resetLogoMark()
 		homeGrid.append(logo, menu, story, reservations)
 		actions.append(visit, follow)
 		stage.append(video, identity)

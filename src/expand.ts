@@ -5,16 +5,17 @@
  * fixed — `.grid` has `perspective`, which would otherwise become the
  * containing block for `position: fixed` and throw coordinates off.
  *
- * Open: hero/sheet layout (and hero-band photo) from frame one — one motion
- * into the final state, no second background beat after travel.
- *
- * Close (mobile): hide the sheet and pin the photo to `inset: 0` immediately,
- * then shrink only the box. Never animate media height to `%` while the
- * parent is also shrinking — that was the mid-close clash / flash.
+ * Open: hide title (grid size) → expand → matrix title + cue together on land.
+ * Close: collapse sheet + fade lead out → shrink → matrix grid title.
  */
 
-const OPEN_MS = 580
-const CLOSE_MS = 480
+import { decodeHosts } from './matrix'
+import { playIconCue, resetIconCue } from './scroll-cue'
+
+const OPEN_MS = 520
+const CLOSE_MS = 400
+const SHEET_COLLAPSE_MS = 280
+const TITLE_FADE_MS = 90
 const EASE = 'cubic-bezier(0.22, 1, 0.36, 1)'
 
 interface Box {
@@ -35,7 +36,7 @@ interface OpenCard {
 
 /** Rows that fade up as the guest scrolls the sheet. */
 const REVEAL_SELECTOR =
-	'.menu-head, .menu-heading, .dish, .menu-note, .allergen, .sheet-head, .sheet-lead, .sheet-block'
+	'.menu-head, .menu-heading, .dish, .menu-note, .sheet-head, .sheet-lead, .sheet-block, .story-brand, .story-head, .story-gallery-grid, .reserve-head, .gift-layout'
 
 const root = document.documentElement
 const mobileQuery = () => matchMedia('(max-width: 899px)')
@@ -44,8 +45,14 @@ let backdrop: HTMLElement | null = null
 let card: OpenCard | null = null
 /** True while a card is shrinking back, so nothing else can grab it. */
 let closing = false
+/** True while the open fade/travel sequence is running. */
+let opening = false
 
 const reduced = () => root.dataset.motion === 'reduce'
+
+function sleep(ms: number) {
+	return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+}
 
 function boxOf(el: Element): Box {
 	const rect = el.getBoundingClientRect()
@@ -145,16 +152,29 @@ function makeClose() {
 }
 
 function fade(el: HTMLElement, to: number, duration: number) {
+	// Drop prior opacity fills — otherwise `fill: forwards` keeps the title
+	// stuck invisible after we try to show it again for the matrix decode.
+	for (const anim of el.getAnimations()) anim.cancel()
+
 	if (reduced()) {
 		el.style.opacity = String(to)
 		return null
 	}
-	const from = Number.parseFloat(getComputedStyle(el).opacity) || (to > 0 ? 0 : 1)
-	return el.animate([{ opacity: from }, { opacity: to }], {
+	const from = Number.parseFloat(getComputedStyle(el).opacity)
+	const start = Number.isFinite(from) ? from : to > 0 ? 0 : 1
+	el.style.opacity = ''
+	return el.animate([{ opacity: start }, { opacity: to }], {
 		duration,
 		easing: EASE,
 		fill: 'forwards',
 	})
+}
+
+/** Cancel opacity anims and set a resting opacity ('' = CSS default). */
+function clearOpacity(el: HTMLElement | null, opacity = '') {
+	if (!el) return
+	for (const anim of el.getAnimations()) anim.cancel()
+	el.style.opacity = opacity
 }
 
 /**
@@ -224,58 +244,192 @@ function watchScroll(tile: HTMLElement) {
 }
 
 /**
- * Pin mobile interior to the grid-card look before the box moves.
- * Sheet is removed from layout; photo fills the tile via `inset: 0` so it
- * tracks the shrinking parent without a competing height animation.
+ * Bring the open card back to a full-bleed hero before the box shrinks —
+ * scroll content away, then collapse the sheet so minimize isn’t fighting
+ * a mid-scroll layout.
  */
-function pinMobileToGrid(tile: HTMLElement) {
-	const sheet = tile.querySelector<HTMLElement>('.card-more')
-	if (sheet) sheet.scrollTop = 0
+async function collapseSheetForClose(tile: HTMLElement) {
+	const scroller = scrollRoot(tile)
+	if (scroller && scroller.scrollTop > 0) {
+		if (reduced()) {
+			scroller.scrollTop = 0
+		} else {
+			const distance = scroller.scrollTop
+			scroller.scrollTo({ top: 0, behavior: 'smooth' })
+			// Cap wait — don’t stall on slow smooth-scroll implementations.
+			await sleep(Math.min(420, 120 + distance * 0.35))
+			scroller.scrollTop = 0
+		}
+	}
+
+	tile.classList.remove('is-scrolled', 'is-sheet-on')
 	tile.classList.add('is-closing')
+
+	if (reduced()) return
+	await sleep(SHEET_COLLAPSE_MS)
+}
+
+function tileText(tile: HTMLElement) {
+	return tile.querySelector<HTMLElement>('.tile-lead .tile-text')
+}
+
+function titleHost(tile: HTMLElement) {
+	return tile.querySelector<HTMLElement>('.tile-lead .tile-text h2')
+}
+
+function scrollHint(tile: HTMLElement) {
+	return tile.querySelector<HTMLElement>('.tile-lead .scroll-hint')
+}
+
+function hintLabel(tile: HTMLElement) {
+	return (
+		tile.querySelector<HTMLElement>('.tile-lead .scroll-hint-label') ??
+		scrollHint(tile)
+	)
+}
+
+function hintIcon(tile: HTMLElement) {
+	return tile.querySelector<HTMLElement>('.tile-lead .scroll-hint-icon')
+}
+
+/** True when the scroll cue is actually shown (hidden on mobile open cards). */
+function hintVisible(hint: HTMLElement) {
+	return getComputedStyle(hint).display !== 'none'
+}
+
+/** Fade title + scroll cue together (used on close). */
+async function fadeLead(tile: HTMLElement, to: number) {
+	const text = tileText(tile)
+	const hint = scrollHint(tile)
+	await Promise.all([
+		waitAnim(text ? fade(text, to, TITLE_FADE_MS) : null),
+		waitAnim(hint ? fade(hint, to, TITLE_FADE_MS) : null),
+	])
+	clearOpacity(text, to === 0 ? '0' : '')
+	clearOpacity(hint, to === 0 ? '0' : '')
+}
+
+/** In-flight lead matrix per tile — aborted when that tile opens again. */
+const leadDecodes = new WeakMap<HTMLElement, AbortController>()
+
+function abortLeadDecode(tile: HTMLElement) {
+	const active = leadDecodes.get(tile)
+	if (!active) return
+	active.abort()
+	leadDecodes.delete(tile)
+}
+
+/**
+ * Matrix-decode hosts. Stays invisible until `decodeHosts` has sync-split
+ * the text into `.ch` glyphs — otherwise the plain hero title flashes for
+ * a frame before the scramble starts.
+ *
+ * Scroll icon (mouse → scramble → chevron) starts with the text matrix so
+ * both land around the same moment.
+ */
+async function decodeLead(tile: HTMLElement, opts: { cue: boolean }) {
+	abortLeadDecode(tile)
+	const ac = new AbortController()
+	leadDecodes.set(tile, ac)
+
+	const text = tileText(tile)
+	const title = titleHost(tile)
+	const hint = scrollHint(tile)
+	const label = hintLabel(tile)
+	const icon = hintIcon(tile)
+
+	resetIconCue(icon)
+
+	const hosts: HTMLElement[] = []
+	if (title) hosts.push(title)
+	else if (text) hosts.push(text)
+
+	const showCue = opts.cue && hint && hintVisible(hint) && label
+	if (showCue && label) hosts.push(label)
+
+	const reveal = [text, showCue ? hint : null].filter(Boolean) as HTMLElement[]
+
+	for (const el of reveal) clearOpacity(el, '0')
+
+	if (!hosts.length) {
+		for (const el of reveal) clearOpacity(el)
+		if (leadDecodes.get(tile) === ac) leadDecodes.delete(tile)
+		return
+	}
+
+	// `decodeHosts` splits text synchronously before returning its promise.
+	const textDone = decodeHosts(hosts, ac.signal)
+	for (const el of reveal) clearOpacity(el)
+
+	const iconDone =
+		showCue && icon ? playIconCue(icon, ac.signal) : Promise.resolve()
+
+	await Promise.all([textDone, iconDone])
+
+	if (leadDecodes.get(tile) === ac) leadDecodes.delete(tile)
 }
 
 async function openCard(tile: HTMLElement) {
-	if (card || closing) return
+	if (card || closing || opening) return
+	opening = true
 
-	const from = boxOf(tile)
+	try {
+		// Stop any close-matrix still running on this tile.
+		abortLeadDecode(tile)
+		resetIconCue(hintIcon(tile))
 
-	const slot = document.createElement('div')
-	slot.className = 'tile-slot'
-	slot.setAttribute('aria-hidden', 'true')
-	slot.setAttribute('style', tile.getAttribute('style') ?? '')
-	tile.parentElement?.insertBefore(slot, tile)
-	document.body.appendChild(tile)
+		const text = tileText(tile)
+		const hint = scrollHint(tile)
 
-	/*
-	  Final hero/sheet layout (and hero-band photo) from frame one — the
-	  lift grows straight into the open state, no second background beat.
-	*/
-	tile.classList.add('is-open', 'is-full', 'is-sheet-on', 'is-traveling')
-	tile.setAttribute('aria-expanded', 'true')
-	root.classList.add('is-card-open')
-	place(tile, from)
+		// Hide at grid size first — never let the hero type flash mid-expand.
+		clearOpacity(text, '0')
+		clearOpacity(hint, '0')
 
-	const close = makeClose()
-	close.style.opacity = '0'
-	tile.appendChild(close)
+		const from = boxOf(tile)
 
-	const lift = travel(tile, from, stageBox(), OPEN_MS)
-	fadeBackdrop(true, OPEN_MS)
-	fade(close, 1, Math.min(280, OPEN_MS * 0.5))
+		const slot = document.createElement('div')
+		slot.className = 'tile-slot'
+		slot.setAttribute('aria-hidden', 'true')
+		slot.setAttribute('style', tile.getAttribute('style') ?? '')
+		tile.parentElement?.insertBefore(slot, tile)
+		document.body.appendChild(tile)
 
-	card = {
-		tile,
-		slot,
-		close,
-		restoreFocus: document.activeElement as HTMLElement | null,
-		anim: lift,
-		teardown: watchScroll(tile),
+		/*
+		  Final hero/sheet layout (and hero-band photo) from frame one — the
+		  lift grows straight into the open state, no second background beat.
+		*/
+		tile.classList.add('is-open', 'is-full', 'is-sheet-on', 'is-traveling')
+		tile.setAttribute('aria-expanded', 'true')
+		root.classList.add('is-card-open')
+		place(tile, from)
+
+		const close = makeClose()
+		close.style.opacity = '0'
+		tile.appendChild(close)
+
+		const lift = travel(tile, from, stageBox(), OPEN_MS)
+		fadeBackdrop(true, OPEN_MS)
+		fade(close, 1, Math.min(280, OPEN_MS * 0.5))
+
+		card = {
+			tile,
+			slot,
+			close,
+			restoreFocus: document.activeElement as HTMLElement | null,
+			anim: lift,
+			teardown: watchScroll(tile),
+		}
+		close.focus({ preventScroll: true })
+
+		await waitAnim(lift)
+		if (!card || card.tile !== tile) return
+		tile.classList.remove('is-traveling')
+
+		// Landed — title + description matrix start together, no wait.
+		await decodeLead(tile, { cue: true })
+	} finally {
+		opening = false
 	}
-	close.focus({ preventScroll: true })
-
-	await waitAnim(lift)
-	if (!card || card.tile !== tile) return
-	tile.classList.remove('is-traveling')
 }
 
 async function closeCard() {
@@ -285,53 +439,71 @@ async function closeCard() {
 	card.anim?.cancel()
 	card = null
 	closing = true
+	opening = false
 
-	const from = boxOf(tile)
-	const to = boxOf(slot)
-	const mobile = mobileQuery().matches
+	// Stop open-matrix if the guest closed mid-decode.
+	abortLeadDecode(tile)
+	resetIconCue(hintIcon(tile))
 
-	/*
-	  Interior first (same frame as shrink start): grid photo + no sheet.
-	  Then only the box travels. Teardown already matches the grid card.
-	*/
-	tile.classList.add('is-traveling')
-	if (mobile) pinMobileToGrid(tile)
+	try {
+		const to = boxOf(slot)
 
-	fade(close, 0, Math.min(220, CLOSE_MS * 0.45))
-	fadeBackdrop(false, CLOSE_MS)
+		fade(close, 0, Math.min(160, CLOSE_MS * 0.4))
 
-	const settle = () => {
-		teardown()
-		close.remove()
-		close.style.opacity = ''
-		getBackdrop().style.opacity = ''
-		tile.classList.remove(
-			'is-open',
-			'is-full',
-			'is-traveling',
-			'is-closing',
-			'is-scrolled',
-			'is-sheet-on',
-		)
-		tile.setAttribute('aria-expanded', 'false')
-		tile.style.top = ''
-		tile.style.left = ''
-		tile.style.width = ''
-		tile.style.height = ''
-		slot.parentElement?.insertBefore(tile, slot)
-		slot.remove()
-		root.classList.remove('is-card-open')
-		restoreFocus?.focus?.({ preventScroll: true })
+		// Title + scroll cue out together, in parallel with the sheet collapse.
+		await Promise.all([collapseSheetForClose(tile), fadeLead(tile, 0)])
+
+		// Shrink the box back to the grid slot (lead stays hidden).
+		tile.classList.add('is-traveling')
+		const from = boxOf(tile)
+		fadeBackdrop(false, CLOSE_MS)
+
+		const settle = () => {
+			teardown()
+			close.remove()
+			close.style.opacity = ''
+			getBackdrop().style.opacity = ''
+			tile.querySelector<HTMLElement>('[data-allergen-dialog]')?.setAttribute(
+				'hidden',
+				'',
+			)
+			tile.classList.remove('is-allergen-open')
+			tile.querySelector<HTMLElement>('[data-gallery-dialog]')?.setAttribute(
+				'hidden',
+				'',
+			)
+			tile.classList.remove('is-gallery-open')
+			tile.classList.remove(
+				'is-open',
+				'is-full',
+				'is-traveling',
+				'is-closing',
+				'is-scrolled',
+				'is-sheet-on',
+			)
+			tile.setAttribute('aria-expanded', 'false')
+			tile.style.top = ''
+			tile.style.left = ''
+			tile.style.width = ''
+			tile.style.height = ''
+			slot.parentElement?.insertBefore(tile, slot)
+			slot.remove()
+			root.classList.remove('is-card-open')
+			restoreFocus?.focus?.({ preventScroll: true })
+		}
+
+		const shrink = travel(tile, from, to, CLOSE_MS)
+		if (shrink) await waitAnim(shrink)
+		settle()
+	} finally {
+		// Unlock as soon as the card is back in the grid — don't wait on
+		// the title matrix so other cards can open immediately.
 		closing = false
 	}
 
-	const shrink = travel(tile, from, to, CLOSE_MS)
-	if (!shrink) {
-		settle()
-		return
-	}
-	await waitAnim(shrink)
-	settle()
+	// Grid title matrix runs in the background.
+	clearOpacity(scrollHint(tile))
+	void decodeLead(tile, { cue: false })
 }
 
 /** Cards only become interactive once the intro has revealed them. */

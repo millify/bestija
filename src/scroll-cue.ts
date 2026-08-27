@@ -1,6 +1,9 @@
 /**
  * After the last card finishes decoding, the scroll cue arrives as a mouse,
  * scrambles through glyphs, then settles into the double chevron.
+ *
+ * The same mouse → scramble → chevron beat is reused inside expanded cards
+ * (`.scroll-hint-icon`) once the title/description matrix has settled.
  */
 
 const GLYPHS = [
@@ -30,41 +33,103 @@ function show(cue: HTMLElement, html: string) {
 	cue.innerHTML = html
 }
 
+function settleHost(host: HTMLElement) {
+	show(host, CHEVRON)
+	host.classList.remove('is-mouse', 'is-scrambling')
+	host.classList.add('is-live', 'is-settled')
+}
+
+/**
+ * Mouse → glyph scramble → double chevron on any host (homepage cue or
+ * in-card scroll hint). Honors AbortSignal so card close can cancel mid-flight.
+ */
+export function playIconCue(
+	host: HTMLElement,
+	signal?: AbortSignal,
+): Promise<void> {
+	return new Promise((resolve) => {
+		if (signal?.aborted) {
+			resolve()
+			return
+		}
+
+		let delayId = 0
+		let tickId = 0
+		const clear = () => {
+			if (delayId) window.clearTimeout(delayId)
+			if (tickId) window.clearInterval(tickId)
+			delayId = 0
+			tickId = 0
+		}
+
+		let settled = false
+		const finish = () => {
+			if (settled) return
+			settled = true
+			clear()
+			resolve()
+		}
+
+		const onAbort = () => {
+			clear()
+			settleHost(host)
+			finish()
+		}
+
+		signal?.addEventListener('abort', onAbort, { once: true })
+
+		host.classList.add('is-live')
+		host.classList.remove('is-mouse', 'is-scrambling', 'is-settled')
+
+		if (reduced()) {
+			settleHost(host)
+			finish()
+			return
+		}
+
+		show(host, MOUSE)
+		host.classList.add('is-mouse')
+
+		delayId = window.setTimeout(() => {
+			if (signal?.aborted) return
+			host.classList.remove('is-mouse')
+			host.classList.add('is-scrambling')
+
+			let flips = 0
+			const maxFlips = 12
+			tickId = window.setInterval(() => {
+				if (signal?.aborted) {
+					clear()
+					return
+				}
+				show(
+					host,
+					`<span class="scroll-cue-glyph" aria-hidden="true">${pick()}</span>`,
+				)
+				flips += 1
+				if (flips < maxFlips) return
+
+				clear()
+				settleHost(host)
+				finish()
+			}, 50)
+		}, 520)
+	})
+}
+
+/** Reset an in-card icon host before the next open. */
+export function resetIconCue(host: HTMLElement | null) {
+	if (!host) return
+	host.innerHTML = ''
+	host.classList.remove('is-live', 'is-mouse', 'is-scrambling', 'is-settled')
+}
+
 export function revealScrollCue() {
 	const cue = document.getElementById('scroll-cue')
 	if (!cue || started) return
 	started = true
 
-	cue.classList.add('is-live')
-
-	if (reduced()) {
-		settleScrollCue()
-		return
-	}
-
-	// 1) Mouse lands — the “you can scroll” hint in its first form.
-	show(cue, MOUSE)
-	cue.classList.add('is-mouse')
-
-	window.setTimeout(() => {
-		cue.classList.remove('is-mouse')
-		cue.classList.add('is-scrambling')
-
-		// 2) Matrix flash through foreign glyphs.
-		let flips = 0
-		const maxFlips = 12
-		const tick = window.setInterval(() => {
-			show(cue, `<span class="scroll-cue-glyph" aria-hidden="true">${pick()}</span>`)
-			flips += 1
-			if (flips < maxFlips) return
-
-			window.clearInterval(tick)
-			// 3) Settle into the double chevron.
-			show(cue, CHEVRON)
-			cue.classList.remove('is-scrambling')
-			cue.classList.add('is-settled')
-		}, 50)
-	}, 520)
+	void playIconCue(cue)
 }
 
 /** Final chevron state with no mouse/scramble prelude. */
@@ -72,7 +137,5 @@ export function settleScrollCue() {
 	const cue = document.getElementById('scroll-cue')
 	if (!cue) return
 	started = true
-	show(cue, CHEVRON)
-	cue.classList.remove('is-mouse', 'is-scrambling')
-	cue.classList.add('is-live', 'is-settled')
+	settleHost(cue)
 }

@@ -2,7 +2,7 @@
  * Page flip between full-viewport screens. Free scrolling is disabled —
  * wheel / swipe / key only steps one screen at a time.
  *
- * Mobile: home trio → story/video/hero → visit / follow / legal.
+ * Mobile: slim mark + story/menu/reservations → video/hero → visit / follow / legal.
  * Desktop: gallery (2×2) → footer.
  *
  * When a card is expanded (`is-card-open`) or a screen intro is playing,

@@ -1,6 +1,6 @@
 /**
- * Atmosphere entrance: desktop footer, or mobile screen 2 (story + video + hero).
- * On mobile, the story card matrix-decodes here — not during the first-screen intro.
+ * Atmosphere entrance: desktop footer, or mobile screen 2 (video + hero).
+ * Story now enters with the mobile home intro after the logo collapses.
  */
 
 import { decodeHosts } from './matrix'
@@ -11,8 +11,6 @@ const root = document.documentElement
 const reduced = () => root.dataset.motion === 'reduce'
 
 const VIDEO_TO_LEDE_MS = 160
-const BEFORE_REST_MS = 80
-const STORY_MEDIA_TO_TEXT_MS = 340
 
 let started = false
 let running = false
@@ -25,7 +23,7 @@ function video() {
 	return document.querySelector<HTMLVideoElement>('#footer-video')
 }
 
-/** Atmosphere screen: desktop footer, or mobile mid page (story + video + hero). */
+/** Atmosphere screen: desktop footer, or mobile mid page (video + hero). */
 function onAtmosphere() {
 	if (boardIsMobile()) return root.dataset.page === '1'
 	return root.classList.contains('is-on-footer')
@@ -48,11 +46,6 @@ function syncVideo() {
 }
 
 function showFinal() {
-	const story = document.querySelector<HTMLElement>('.tile--story')
-	if (story) {
-		story.classList.add('is-tile-in', 'is-media-in', 'is-text-in', 'is-in')
-		story.classList.remove('is-tile-in')
-	}
 	root.classList.add(
 		'is-footer-video-on',
 		'is-footer-brand-on',
@@ -60,26 +53,6 @@ function showFinal() {
 		'is-footer-revealed',
 	)
 	syncVideo()
-}
-
-async function revealStoryTile() {
-	const story = document.querySelector<HTMLElement>('.tile--story')
-	if (!story || story.classList.contains('is-text-in')) return
-
-	const settle = (event: AnimationEvent) => {
-		if (event.target !== story) return
-		story.removeEventListener('animationend', settle)
-		story.classList.add('is-in')
-		story.classList.remove('is-tile-in')
-	}
-	story.addEventListener('animationend', settle)
-	story.classList.add('is-tile-in', 'is-media-in')
-
-	await sleep(STORY_MEDIA_TO_TEXT_MS)
-	story.classList.add('is-text-in')
-
-	const title = story.querySelector<HTMLElement>('h2')
-	if (title) await decodeHosts([title])
 }
 
 async function decodeLede() {
@@ -100,11 +73,6 @@ async function play() {
 	running = true
 	root.classList.add('is-screen-animating')
 
-	// Mobile screen 2: story card enters + decodes first.
-	if (boardIsMobile()) {
-		await revealStoryTile()
-	}
-
 	// Kitchen video fades in; lede matrix follows.
 	root.classList.add('is-footer-video-on')
 	syncVideo()
@@ -114,7 +82,7 @@ async function play() {
 	await sleep(40)
 	await decodeLede()
 
-	await sleep(BEFORE_REST_MS)
+	// Reveal the rest immediately — no post-matrix pause.
 	root.classList.add('is-footer-revealed')
 
 	started = true

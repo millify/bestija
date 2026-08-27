@@ -1,11 +1,15 @@
 import { buildScripts, type WorldScript } from './glyphs'
 import { revealScrollCue, settleScrollCue } from './scroll-cue'
 import { boardIsMobile } from './layout'
+import { applyLogoCompact, collapseLogoMark } from './logo-collapse'
 import { animationsEnabled } from './prefs'
 
 /**
  * Staged intro: the wordmark draws on the page, then each content card flies in
  * one at a time and decodes its copy.
+ *
+ * Mobile: after the full mark + “Bistro · Zagreb”, the wordmark shrinks into
+ * a slim header (subtitle drops); then Story / Menu / Reservations enter.
  *
  * Two decode styles, switchable with `?decode=`:
  *   world  — every word arrives as a run of world scripts, then settles into
@@ -13,8 +17,11 @@ import { animationsEnabled } from './prefs'
  *   cipher — per-glyph symbol scramble
  */
 
-/** Milliseconds from page load until the wordmark has finished drawing. */
+/** Milliseconds from page load until the wordmark has finished drawing (desktop). */
 const CONTENT_START = 2200
+/** Mobile: wait for stroke + subtitle before collapsing the mark. */
+const MOBILE_COLLAPSE_AT = 3000
+const MOBILE_COLLAPSE_MS = 1100
 const TILE_STEP = 200
 const MEDIA_TO_TEXT = 340
 /** Each text block starts after the previous one in the same card. */
@@ -106,15 +113,13 @@ const randomOf = <T>(list: readonly T[]) =>
 
 const isVisible = (el: HTMLElement) => el.getClientRects().length > 0
 
-/** First-screen cards only on mobile; full gallery on desktop. */
+/** Home-screen content cards (logo excluded). Mobile includes Story. */
 function contentTiles() {
-	const tiles = [
-		...document.querySelectorAll<HTMLElement>('.tile:not(.tile--logo)'),
+	return [
+		...document.querySelectorAll<HTMLElement>(
+			'#home-grid .tile:not(.tile--logo)',
+		),
 	]
-	if (boardIsMobile()) {
-		return tiles.filter((tile) => !tile.classList.contains('tile--story'))
-	}
-	return tiles
 }
 
 function revealInstantly(tile: HTMLElement) {
@@ -390,67 +395,78 @@ function finishIntro() {
 }
 
 function begin() {
-	const tiles = contentTiles()
+	const scheduleCards = (contentBase: number) => {
+		const tiles = contentTiles()
+		const visible = tiles.filter(isVisible)
+		const sample = document.querySelector<HTMLElement>('#home-grid .tile h2')
+		scripts = sample ? buildScripts(getComputedStyle(sample).fontFamily) : []
+		const mode = scripts.length ? readMode() : 'cipher'
+
+		const base = Math.max(contentBase, performance.now() - pageStart + 120)
+
+		const planned = visible.flatMap((tile, tileIndex) => {
+			const textAt = base + tileIndex * TILE_STEP + MEDIA_TO_TEXT
+			const targets = [...tile.querySelectorAll<HTMLElement>(TEXT_SELECTOR)]
+
+			let hostIndex = 0
+			return targets.filter(isVisible).flatMap((host) => {
+				const html = host.innerHTML
+				const words = splitHost(host)
+				if (!words.length) return []
+
+				hosts.set(host, { html, pending: 0 })
+				const at = textAt + hostIndex * HOST_STEP
+				hostIndex += 1
+				return [{ host, words, at }]
+			})
+		})
+
+		visible.forEach((tile, index) => {
+			const mediaAt = base + index * TILE_STEP
+			marks.push({
+				at: mediaAt,
+				run: () => {
+					flyIn(tile)
+					tile.classList.add('is-media-in')
+				},
+			})
+			marks.push({
+				at: mediaAt + MEDIA_TO_TEXT,
+				run: () => tile.classList.add('is-text-in'),
+			})
+		})
+
+		for (const { host, words, at } of planned) {
+			if (mode === 'world') buildWordUnits(host, words, at)
+			else buildCharUnits(host, words, at)
+		}
+
+		marks.sort((a, b) => a.at - b.at)
+		requestAnimationFrame(tick)
+	}
 
 	// Resolved before first paint by the inline head script.
 	if (root.dataset.motion === 'reduce') {
+		if (boardIsMobile()) applyLogoCompact()
+		const tiles = contentTiles()
 		tiles.forEach((tile, index) => {
-			setTimeout(() => revealInstantly(tile), CONTENT_START + index * TILE_STEP)
+			setTimeout(() => revealInstantly(tile), 80 + index * TILE_STEP)
 		})
-		const lastAt = CONTENT_START + Math.max(0, tiles.length - 1) * TILE_STEP
-		setTimeout(finishIntro, lastAt + 700)
+		setTimeout(finishIntro, 80 + Math.max(0, tiles.length - 1) * TILE_STEP + 400)
 		return
 	}
 
-	const visible = tiles.filter(isVisible)
-	const sample = document.querySelector<HTMLElement>('.tile h2')
-	scripts = sample ? buildScripts(getComputedStyle(sample).fontFamily) : []
-	const mode = scripts.length ? readMode() : 'cipher'
-
-	// If webfonts were slow, start from now so the sequence never plays out
-	// half-finished in a single frame.
-	const base = Math.max(CONTENT_START, performance.now() - pageStart + 120)
-
-	// Split every card first, then measure once, to keep layout work in one pass.
-	const planned = visible.flatMap((tile, tileIndex) => {
-		const textAt = base + tileIndex * TILE_STEP + MEDIA_TO_TEXT
-		const targets = [...tile.querySelectorAll<HTMLElement>(TEXT_SELECTOR)]
-
-		let hostIndex = 0
-		return targets.filter(isVisible).flatMap((host) => {
-			const html = host.innerHTML
-			const words = splitHost(host)
-			if (!words.length) return []
-
-			hosts.set(host, { html, pending: 0 })
-			const at = textAt + hostIndex * HOST_STEP
-			hostIndex += 1
-			return [{ host, words, at }]
-		})
-	})
-
-	visible.forEach((tile, index) => {
-		const mediaAt = base + index * TILE_STEP
-		marks.push({
-			at: mediaAt,
-			run: () => {
-				flyIn(tile)
-				tile.classList.add('is-media-in')
-			},
-		})
-		marks.push({
-			at: mediaAt + MEDIA_TO_TEXT,
-			run: () => tile.classList.add('is-text-in'),
-		})
-	})
-
-	for (const { host, words, at } of planned) {
-		if (mode === 'world') buildWordUnits(host, words, at)
-		else buildCharUnits(host, words, at)
+	if (boardIsMobile()) {
+		const wait = Math.max(0, MOBILE_COLLAPSE_AT - (performance.now() - pageStart))
+		window.setTimeout(() => {
+			void collapseLogoMark(MOBILE_COLLAPSE_MS).then(() => {
+				scheduleCards(performance.now() - pageStart + 80)
+			})
+		}, wait)
+		return
 	}
 
-	marks.sort((a, b) => a.at - b.at)
-	requestAnimationFrame(tick)
+	scheduleCards(CONTENT_START)
 }
 
 /** A tile revealed by a viewport change mid-intro never gets to decode. */
@@ -485,6 +501,8 @@ export function startIntro() {
 
 /** Jump to the settled gallery when entrance animation is turned off. */
 function skipIntro() {
+	if (boardIsMobile()) applyLogoCompact()
+
 	const tiles = contentTiles()
 	for (const tile of tiles) {
 		revealInstantly(tile)
